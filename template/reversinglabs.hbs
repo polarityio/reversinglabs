@@ -1,0 +1,131 @@
+<div class ="a1000-file">
+    {{#if block.data.details.a1000}}
+    <a href="{{block.data.details.a1000}}">View in ReversingLabs A1000 </a><i class="btb bt-external-link"></i>
+    {{/if}}
+</div>
+
+<div class="file">
+    <h1> File Reputation </h1>
+</div>
+
+<table style="width: 100%">
+
+    {{#if block.data.details.datas.malware_presence.status}}
+        <tr>
+            <td><b>Status:</b></td>
+            <td>{{block.data.details.datas.malware_presence.status}}</td>
+        </tr>
+    {{/if}}
+    {{#if block.data.details.scanner_detection}}
+        <tr>
+            <td><b>AV Scanner Detection:</b></td>
+            <td>{{block.data.details.scanner_detection}}</td>
+        </tr>
+    {{/if}}
+    {{# if block.data.details.datas.malware_presence.first_seen}}
+        <tr>
+            <td><b>First Seen:</b></td>
+            <td>{{moment-time block.data.details.datas.malware_presence.first_seen}}</td>
+        </tr>
+    {{/if}}
+    {{# if block.data.details.datas.malware_presence.last_seen}}
+        <tr>
+            <td><b>Last Seen:</b></td>
+            <td>{{moment-time block.data.details.datas.malware_presence.last_seen}}</td>
+        </tr>
+    {{/if}}
+    <tr>
+        {{#if block.data.details.threat}}
+            <td><b>Threat:</b></td>
+
+            <td>{{block.data.details.threat}}</td>
+        {{/if}}
+    </tr>
+</table>
+
+
+<div class="class">
+    {{#if block.data.details.datas.malware_presence.classification.family_name}}
+        <h1>Classification </h1>
+    {{/if}}
+</div>
+
+
+<table style="width: 100%">
+    {{#if block.data.details.datas.malware_presence.classification.family_name}}
+        <tr>
+            <td><b>Family Name:</b></td>
+            <td>{{block.data.details.datas.malware_presence.classification.family_name}}</td>
+        </tr>
+    {{/if}}
+    {{# if block.data.details.datas.malware_presence.classification.type}}
+        <tr>
+            <td><b>Type:</b></td>
+            <td>{{block.data.details.datas.malware_presence.classification.type}}</td>
+        </tr>
+    {{/if}}
+    {{# if block.data.details.datas.malware_presence.classification.platform}}
+        <tr>
+            <td><b>Platform:</b></td>
+            <td>{{block.data.details.datas.malware_presence.classification.platform}}</td>
+        </tr>
+    {{/if}}
+    {{# if block.data.details.threats}}
+        <tr>
+            <td><b>Threat Name:</b></td>
+            <td>{{block.data.details.threats}}</td>
+        </tr>
+    {{/if}}
+</table>
+
+{{#if block.data.details.scanned_on}}
+    <div class="scanner-results">
+        <h1> Scanner Results </h1>
+    </div>
+{{/if}}
+
+{{#if block.data.details.scanned_on}}
+<div class="padding-0-5">
+<p>
+    <b class="muted">Scan Date</b>: {{moment-time block.data.details.scanned_on}}
+</p>
+<p>
+    {{block.data.details.scanner_match}} scanners detected information out
+    of {{block.data.details.scanner_count}}
+</p>
+</div>
+{{/if}}
+
+<a class="toggleScanner" {{action "toggleScanner"}}> Click Here to see Scanner Results</a>
+{{#if isShowingDiv}}
+<div id="collapse-xref" class="xref-table">
+    {{#if block.data.details.scanned_on}}
+        <table class="padding-0-5" style="margin-top: 10px;">
+            <thead>
+            <th></th>
+            <th>Scanner</th>
+            <th>Result</th>
+            </thead>
+            <tbody>
+            {{#each-in block.data.details.results as |key value|}}
+                <tr>
+                    <td style="width:20px"><i class="{{if value.result 'fa fa-bug' 'bts bt-check'}}"></i></td>
+                    <td>
+                        {{#if value.scanner}}
+                            {{value.scanner}}
+                        {{/if}}
+                    </td>
+                    <td>
+                        {{#if value.result}}
+                            {{value.result}}
+                        {{else}}
+                            <span class="success">[Nothing Detected from Scanner]</span>
+                        {{/if}}
+                    </td>
+                </tr>
+            {{/each-in}}
+            </tbody>
+        </table>
+    {{/if}}
+</div>
+{{/if}}

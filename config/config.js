@@ -3,7 +3,7 @@ module.exports = {
     "acronym":"RL",
     "logging": { level: 'info'},
     "entityTypes": ['hash'],
-    "description": "ReversingLabs integration",
+    "description": "ReversingLabs integration for real-time file hash lookups",
     "styles":[
         "./styles/reversinglabs.less"
     ],
@@ -46,7 +46,7 @@ module.exports = {
         {
             "key": "lookupMaleware",
             "name": "Lookup Malware File Information",
-            "description": "If checked, the integration will lookup File information on Maleware",
+            "description": "If checked, the integration will lookup File information on Malware",
             "default": true,
             "type": "boolean",
             "userCanEdit": true,

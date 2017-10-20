@@ -3,7 +3,7 @@ module.exports = {
     "acronym":"RL",
     "logging": { level: 'info'},
     "entityTypes": ['hash'],
-    "description": "ReversingLabs integration",
+    "description": "ReversingLabs integration for real-time file hash lookups",
     "styles":[
         "./styles/reversinglabs.less"
     ],
@@ -46,7 +46,7 @@ module.exports = {
         {
             "key": "lookupMaleware",
             "name": "Lookup Malware File Information",
-            "description": "If checked, the integration will lookup File information on Maleware",
+            "description": "If checked, the integration will lookup File information on Malware",
             "default": true,
             "type": "boolean",
             "userCanEdit": true,
@@ -78,6 +78,24 @@ module.exports = {
             "type": "boolean",
             "userCanEdit": true,
             "adminOnly": false
+        },
+        {
+            "key": "lookupA1000",
+            "name": "View data in A1000",
+            "description": "If checked, the integration will create a link that allows users to view information in their A1000 system",
+            "default": true,
+            "type": "boolean",
+            "userCanEdit": true,
+            "adminOnly": false
+        },
+        {
+            "key"         : "a1000",
+            "name"        : "A1000 Server",
+            "description" : "A1000 Server, do not include the https://",
+            "default"     : true,
+            "type"        : "text",
+            "userCanEdit" : true,
+            "adminOnly"    : false
         }
     ]
 };

@@ -6,11 +6,9 @@ let util = require('util');
 let async = require('async');
 let log = null;
 
-
 function startup(logger) {
     log = logger;
 }
-
 
 var hashIcon = '<i class="fa fa-bug"></i>';
 
@@ -29,7 +27,6 @@ function doLookup(entities, options, cb) {
     for (let i = 0; i < entities.length; i++) {
         let entityObj = entities[i];
 
-
         if (entityObj.isSHA256 && options.lookupSha256) {
             sha256Elements.push(entityObj);
         } else if (entityObj.isSHA1 && options.lookupSha1) {
@@ -38,9 +35,6 @@ function doLookup(entities, options, cb) {
             md5Elements.push(entityObj);
         }
     }
-
-
-
 
     async.parallel({
         sha1: function (done) {
@@ -193,6 +187,64 @@ function doLookup(entities, options, cb) {
     });
 }
 
+function _handleRequestError(err, response, cb) {
+    if (err) {
+        log.error({err: err}, "HTTP Request Failed");
+        cb(_createJsonErrorPayload("HTTP Request Failed", null, '500', '2A', 'HTTP Error', {
+            err: err
+        }));
+        return;
+    }
+
+    // don't consider this an error as we treat it as a cache miss
+    if(response.statusCode === 404){
+        cb(null);
+        return;
+    }
+
+    if (response.statusCode === 401) {
+        cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
+            err: err
+        }));
+        return;
+    }
+
+    if (response.statusCode === 400) {
+        cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
+            err: err
+        }));
+        return;
+    }
+    if (response.statusCode === 403) {
+        cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
+            err: err
+        }));
+        return;
+    }
+
+    if (response.statusCode === 500) {
+        cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
+            err: err
+        }));
+        return;
+    }
+
+    if (response.statusCode === 503) {
+        cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
+            err: err
+        }));
+        return;
+    }
+
+    if (response.statusCode !== 200) {
+        cb(_createJsonErrorPayload("The integration received an unexpected non-200 HTTP status code", null, response.statusCode.toString(), '2A', 'Unexpected Non-200 HTTP Code', {
+            err: err
+        }));
+        return;
+    }
+
+    cb(null);
+}
 
 function _lookupEntitySHA1Xref(entityObj, options, cb) {
 
@@ -201,83 +253,33 @@ function _lookupEntitySHA1Xref(entityObj, options, cb) {
         return;
     }
 
-
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
     log.debug({entity: entityObj[0].value}, "What is the entity for sha1");
     log.debug({uri: 'https://' + options.url + '/api/xref/v2/query/sha1/' + entityObj[0].value + '?extended=true&format=json'}, "URI Parameter");
     let lookupResults = [];
-    if (entityObj[0].value)
-        request({
-            uri: 'https://' + options.url + '/api/xref/v2/query/sha1/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj[0].value,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+
+    request({
+        uri: 'https://' + options.url + '/api/xref/v2/query/sha1/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body == null || body.rl == null || body.rl.sample.xref === "") {
+            if (response.statusCode === 404 || body == null || body.rl == null || body.rl.sample.xref === "") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({body: body}, "Printing out the results of Body ");
 
@@ -303,6 +305,7 @@ function _lookupEntitySHA1Xref(entityObj, options, cb) {
             });
             cb(null, lookupResults);
         });
+    });
 }
 
 function _lookupEntitySHA1(entityObj, options, cb) {
@@ -311,7 +314,7 @@ function _lookupEntitySHA1(entityObj, options, cb) {
         return;
     }
 
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
@@ -320,75 +323,26 @@ function _lookupEntitySHA1(entityObj, options, cb) {
     log.debug({uri: 'https://' + options.url + '/api/xref/v2/query/sha1/' + entityObj[0].value + '?extended=true&format=json'}, "URI Parameter for malwarepresence");
 
     let lookupResults = [];
-    if (entityObj[0].value)
-        request({
-            uri: 'https://' + options.url + '/api/databrowser/malware_presence/query/sha1/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj[0].value,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+
+    request({
+        uri: 'https://' + options.url + '/api/databrowser/malware_presence/query/sha1/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body == null || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
+            if (response.statusCode === 404 || body == null || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({body: body}, "Printing out the results of Body for maleware presence");
 
@@ -437,6 +391,7 @@ function _lookupEntitySHA1(entityObj, options, cb) {
                 cb(null, lookupResults);
             }
         });
+    });
 }
 
 
@@ -446,89 +401,36 @@ function _lookupEntitySha256Xref(entityObj, options, cb) {
         return;
     }
 
-
-
     log.debug({entity: entityObj[0].value}, "What is the entity");
 
     let lookupResults = [];
 
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
-    if (entityObj[0].value)
-        request({
-            uri: 'https://' + options.url + '/api/xref/v2/query/sha256/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj[0].value,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+    request({
+        uri: 'https://' + options.url + '/api/xref/v2/query/sha256/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body.rl == null || body.rl.sample.xref === "") {
+            if (response.statusCode === 404 || body.rl == null || body.rl.sample.xref === "") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({results: body.rl.sample.xref[0].results}, "What do scanner results look like:");
             log.debug({body: body}, "Printing out the results of Body ");
-
 
             lookupResults.push({
                 entity: entityObj[0],
@@ -547,10 +449,11 @@ function _lookupEntitySha256Xref(entityObj, options, cb) {
                         a1000: a1000
                     }
                 }
-
             });
+
             cb(null, lookupResults);
         });
+    });
 }
 
 
@@ -561,84 +464,32 @@ function _lookupEntityMD5Xref(entityObj, options, cb) {
     }
 
 
-
     let lookupResults = [];
     log.debug({entity: entityObj[0].value}, "What is the entity");
 
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
-    if (entityObj[0].value)
-        request({
-            uri: 'https://' + options.url + '/api/xref/v2/query/md5/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj[0].value,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+    request({
+        uri: 'https://' + options.url + '/api/xref/v2/query/md5/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body.rl == null || body.rl.sample.xref === "") {
+            if (response.statusCode === 404 || body.rl == null || body.rl.sample.xref === "") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({results: body.rl.sample.xref[0].results}, "What do scanner results look like:");
             log.debug({body: body}, "Printing out the results of Body ");
@@ -664,6 +515,7 @@ function _lookupEntityMD5Xref(entityObj, options, cb) {
             });
             cb(null, lookupResults);
         });
+    });
 }
 
 function _lookupEntity(entityObj, options, cb) {
@@ -672,87 +524,35 @@ function _lookupEntity(entityObj, options, cb) {
         return;
     }
 
-
     log.debug({entity: entityObj[0].value}, "What is the entity");
 
     let lookupResults = [];
 
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
     log.debug({a1000: a1000}, "What does the URL Look like");
 
-    if (entityObj[0].value)
-        request({
-            uri: 'https://ticloud-cdn-api.reversinglabs.com/api/databrowser/malware_presence/query/sha256/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj[0].value,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+    request({
+        uri: 'https://ticloud-cdn-api.reversinglabs.com/api/databrowser/malware_presence/query/sha256/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
+            if (response.statusCode === 404 || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({body: body}, "Printing out the results of Body ");
 
@@ -775,7 +575,6 @@ function _lookupEntity(entityObj, options, cb) {
                             a1000: a1000
                         }
                     }
-
                 });
                 cb(null, lookupResults);
             } else {
@@ -800,6 +599,7 @@ function _lookupEntity(entityObj, options, cb) {
                 cb(null, lookupResults);
             }
         });
+    });
 }
 
 
@@ -810,83 +610,32 @@ function _lookupEntityMD5(entityObj, options, cb) {
     }
 
 
-
     log.debug({entity: entityObj[0].value}, "What is the entity");
     let lookupResults = [];
 
-    if(options.lookupA1000) {
+    if (options.lookupA1000) {
         var a1000 = 'https://' + options.a1000 + '/?q=' + entityObj[0].value;
     }
 
-    if (entityObj[0].value)
-        request({
-            uri: 'https://' + options.url + '/api/databrowser/malware_presence/query/md5/' + entityObj[0].value + '?extended=true&format=json',
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            if (err) {
-                cb(null, {
-                    entity: entityObj,
-                    data: null
-                });
-                log.error({err: err}, "Logging error");
+    request({
+        uri: 'https://' + options.url + '/api/databrowser/malware_presence/query/md5/' + entityObj[0].value + '?extended=true&format=json',
+        method: 'GET',
+        auth: {
+            'username': options.username,
+            'password': options.password
+        },
+        json: true
+    }, function (err, response, body) {
+        _handleRequestError(err, response, function (jsonApiError) {
+            if (jsonApiError) {
+                cb(jsonApiError);
                 return;
             }
 
-            if (response.statusCode === 401) {
-                cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 400) {
-                cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-                    err: err
-                }));
-                return;
-            }
-            if (response.statusCode === 403) {
-                cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 404) {
-                cb(null, []);
-                return;
-
-            }
-
-            if (response.statusCode === 500) {
-                cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode === 503) {
-                cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-                    err: err
-                }));
-                return;
-            }
-
-            if (response.statusCode !== 200) {
-                cb(body);
-                return;
-            }
-
-            if (body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
+            if (response.statusCode === 404 || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
                 cb(null, []);
                 return;
             }
-
 
             log.debug({body: body}, "Printing out the results of Body ");
 
@@ -934,6 +683,7 @@ function _lookupEntityMD5(entityObj, options, cb) {
                 cb(null, lookupResults);
             }
         });
+    });
 }
 
 

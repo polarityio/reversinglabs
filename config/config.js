@@ -92,7 +92,7 @@ module.exports = {
             "key"         : "a1000",
             "name"        : "A1000 Server",
             "description" : "A1000 Server, do not include the https://",
-            "default"     : true,
+            "default"     : "",
             "type"        : "text",
             "userCanEdit" : true,
             "adminOnly"    : false

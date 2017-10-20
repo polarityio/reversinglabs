@@ -1,25 +1,8 @@
 module.exports = {
     "name": "ReversingLabs",
     "acronym":"RL",
-    "logging": { level: 'debug'},
+    "logging": { level: 'info'},
     "entityTypes": ['hash'],
-    /*"customTypes":[
-        {
-            "key": 'sha256',
-            "regex": /\b[A-Fa-f0-9]{64}\b/,
-            "isCaseSensitive": false
-        },
-        {
-            "key": 'sha1',
-            "regex": /\b([a-f0-9]{40})\b/,
-            "isCaseSensitive": false
-        },
-        {
-            "key": 'md5',
-            "regex": /\b[A-Fa-f0-9]{32}\b/,
-            "isCaseSensitive": false
-        }
-    ],*/
     "description": "ReversingLabs integration",
     "styles":[
         "./styles/reversinglabs.less"

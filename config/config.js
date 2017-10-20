@@ -78,6 +78,24 @@ module.exports = {
             "type": "boolean",
             "userCanEdit": true,
             "adminOnly": false
+        },
+        {
+            "key": "lookupA1000",
+            "name": "View data in A1000",
+            "description": "If checked, the integration will create a link that allows users to view information in their A1000 system",
+            "default": true,
+            "type": "boolean",
+            "userCanEdit": true,
+            "adminOnly": false
+        },
+        {
+            "key"         : "a1000",
+            "name"        : "A1000 Server",
+            "description" : "A1000 Server, do not include the https://",
+            "default"     : true,
+            "type"        : "text",
+            "userCanEdit" : true,
+            "adminOnly"    : false
         }
     ]
 };

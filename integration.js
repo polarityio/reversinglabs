@@ -5,11 +5,41 @@ let _ = require('lodash');
 let util = require('util');
 let async = require('async');
 let log = null;
+let fs = require('fs');
+let config = require('./config/config');
 
 const HASH_ICON = '<i class="fa fa-bug"></i>';
+let requestWithDefaults;
 
 function startup(logger) {
+    let defaults = {};
     log = logger;
+
+    if (typeof config.request.cert === 'string' && config.request.cert.length > 0) {
+        defaults.cert = fs.readFileSync(config.request.cert);
+    }
+
+    if (typeof config.request.key === 'string' && config.request.key.length > 0) {
+        defaults.key = fs.readFileSync(config.request.key);
+    }
+
+    if (typeof config.request.passphrase === 'string' && config.request.passphrase.length > 0) {
+        defaults.passphrase = config.request.passphrase;
+    }
+
+    if (typeof config.request.ca === 'string' && config.request.ca.length > 0) {
+        defaults.ca = fs.readFileSync(config.request.ca);
+    }
+
+    if (typeof config.request.proxy === 'string' && config.request.proxy.length > 0) {
+        defaults.proxy = config.request.proxy;
+    }
+
+    if (typeof config.request.rejectUnauthorized === 'boolean') {
+        defaults.rejectUnauthorized = config.request.rejectUnauthorized;
+    }
+
+    requestWithDefaults = request.defaults(defaults);
 }
 
 function doLookup(entities, options, cb) {
@@ -142,16 +172,17 @@ function doLookup(entities, options, cb) {
             });
 
             let totalResultsSha1 = _.reduce(lookupResultsSha1, function (reduced, entityResult) {
-                let entityValue = entityResult.entity.value;
-
                 if (!entityResult) {
                     return reduced;
                 }
+
+                let entityValue = entityResult.entity.value;
+
                 if (typeof reduced[entityValue] !== "object") {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null) { // check for misses which don't need processing
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        entityResult.data.summary);
+                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }
@@ -159,16 +190,17 @@ function doLookup(entities, options, cb) {
             }, {});
 
             let totalResultsSha256 = _.reduce(lookupResultsSha256, function (reduced, entityResult) {
-                let entityValue = entityResult.entity.value;
-
                 if (!entityResult) {
                     return reduced;
                 }
+
+                let entityValue = entityResult.entity.value;
+
                 if (typeof reduced[entityValue] !== "object") {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null){
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        entityResult.data.summary);
+                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }
@@ -176,16 +208,17 @@ function doLookup(entities, options, cb) {
             }, {});
 
             let totalResultsMd = _.reduce(lookupResultsMd, function (reduced, entityResult) {
-                let entityValue = entityResult.entity.value;
-
                 if (!entityResult) {
                     return reduced;
                 }
+
+                let entityValue = entityResult.entity.value;
+
                 if (typeof reduced[entityValue] !== "object") {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null){
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        entityResult.data.summary);
+                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }
@@ -284,7 +317,7 @@ function _lookupEntitySHA1Xref(sha1XrefEntities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'SHA1 XRef Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {
@@ -351,7 +384,7 @@ function _lookupEntitySHA1(sha1Entities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {
@@ -440,7 +473,7 @@ function _lookupEntitySha256Xref(sha256Entities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {
@@ -505,7 +538,7 @@ function _lookupEntityMD5Xref(md5Entities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'MD5 Xref Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {
@@ -569,7 +602,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'SHA 256 Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {
@@ -653,7 +686,7 @@ function _lookupEntityMD5(md5Entities, options, cb) {
 
         log.debug({entity: entity.value, uri: uri}, 'MD5 Request Info');
 
-        request({
+        requestWithDefaults({
             uri: uri,
             method: 'GET',
             auth: {

@@ -182,7 +182,7 @@ function doLookup(entities, options, cb) {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null) { // check for misses which don't need processing
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
+                        typeof entityResult.data === 'object' && Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }
@@ -200,7 +200,7 @@ function doLookup(entities, options, cb) {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null){
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
+                        typeof entityResult.data === 'object' &&  Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }
@@ -218,7 +218,7 @@ function doLookup(entities, options, cb) {
                     reduced[entityValue] = entityResult;
                 } else if (reduced[entityValue].data !== null){
                     reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
+                        typeof entityResult.data === 'object' &&  Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
 
                     _.merge(reduced[entityValue].data.details, entityResult.data.details);
                 }

@@ -420,7 +420,7 @@ function _lookupEntitySHA1(sha1Entities, options, cb) {
                         data: {
                             displayValue: entity.value,
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA1 Hash"],
+                            summary: [body.rl.malware_presence.status + " SHA1"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
@@ -442,7 +442,7 @@ function _lookupEntitySHA1(sha1Entities, options, cb) {
                         // Required: An object containing everything you want passed to the template
                         data: {
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA1 Hash"],
+                            summary: [body.rl.malware_presence.status + " SHA1"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 datas: body.rl,
@@ -634,7 +634,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
                         // Required: An object containing everything you want passed to the template
                         data: {
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA256 Hash"],
+                            summary: [body.rl.malware_presence.status + " SHA256"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
@@ -654,7 +654,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
                         // Required: An object containing everything you want passed to the template
                         data: {
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA256 Hash"],
+                            summary: [body.rl.malware_presence.status + " SHA256"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 datas: body.rl,
@@ -718,7 +718,7 @@ function _lookupEntityMD5(md5Entities, options, cb) {
                         // Required: An object containing everything you want passed to the template
                         data: {
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " MD5 Hash"],
+                            summary: [body.rl.malware_presence.status + " MD5"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
@@ -739,7 +739,7 @@ function _lookupEntityMD5(md5Entities, options, cb) {
                         // Required: An object containing everything you want passed to the template
                         data: {
                             // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " MD5 Hash"],
+                            summary: [body.rl.malware_presence.status + " MD5"],
                             // Data that you want to pass back to the notification window details block
                             details: {
                                 datas: body.rl,

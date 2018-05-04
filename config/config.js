@@ -5,7 +5,8 @@ module.exports = {
     entityTypes: ['hash'],
     description: 'ReversingLabs integration for real-time file hash lookups',
     styles: [
-        './styles/reversinglabs.less'
+        './styles/reversinglabs.less',
+        './styles/exfoliate.less'
     ],
     block: {
         component: {

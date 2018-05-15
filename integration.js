@@ -597,7 +597,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
     let lookupResults = [];
 
     async.each(sha256Entities, (entity, done) => {
-        let uri = 'https://ticloud-cdn-api.reversinglabs.com/api/databrowser/malware_presence/query/sha256/' +
+        let uri = 'https://' + options.url + '/api/databrowser/malware_presence/query/sha256/' +
             entity.value + '?extended=true&format=json';
 
         log.debug({entity: entity.value, uri: uri}, 'SHA 256 Request Info');

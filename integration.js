@@ -171,59 +171,9 @@ function doLookup(entities, options, cb) {
                 lookupResultsSha256.push(result);
             });
 
-            let totalResultsSha1 = _.reduce(lookupResultsSha1, function (reduced, entityResult) {
-                if (!entityResult) {
-                    return reduced;
-                }
-
-                let entityValue = entityResult.entity.value;
-
-                if (typeof reduced[entityValue] !== "object") {
-                    reduced[entityValue] = entityResult;
-                } else if (reduced[entityValue].data !== null) { // check for misses which don't need processing
-                    reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        _.isObject(entityResult.data) && Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
-
-                    _.merge(reduced[entityValue].data.details, entityResult.data.details);
-                }
-                return reduced;
-            }, {});
-
-            let totalResultsSha256 = _.reduce(lookupResultsSha256, function (reduced, entityResult) {
-                if (!entityResult) {
-                    return reduced;
-                }
-
-                let entityValue = entityResult.entity.value;
-
-                if (typeof reduced[entityValue] !== "object") {
-                    reduced[entityValue] = entityResult;
-                } else if (reduced[entityValue].data !== null){
-                    reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        _.isObject(entityResult.data) &&  Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
-
-                    _.merge(reduced[entityValue].data.details, entityResult.data.details);
-                }
-                return reduced;
-            }, {});
-
-            let totalResultsMd = _.reduce(lookupResultsMd, function (reduced, entityResult) {
-                if (!entityResult) {
-                    return reduced;
-                }
-
-                let entityValue = entityResult.entity.value;
-
-                if (typeof reduced[entityValue] !== "object") {
-                    reduced[entityValue] = entityResult;
-                } else if (reduced[entityValue].data !== null){
-                    reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-                        _.isObject(entityResult.data) &&  Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
-
-                    _.merge(reduced[entityValue].data.details, entityResult.data.details);
-                }
-                return reduced;
-            }, {});
+            let totalResultsSha1 = _.reduce(lookupResultsSha1, _reduceResults, {});
+            let totalResultsSha256 = _.reduce(lookupResultsSha256,_reduceResults, {});
+            let totalResultsMd = _.reduce(lookupResultsMd, _reduceResults, {});
 
             let finalTotalLookupResults = [];
 
@@ -244,6 +194,25 @@ function doLookup(entities, options, cb) {
             cb(null, finalTotalLookupResults);
         }
     });
+}
+
+function _reduceResults(reduced, entityResult){
+    if (!entityResult) {
+        return reduced;
+    }
+
+    let entityValue = entityResult.entity.value;
+
+    if (_.isNil(reduced[entityValue]) || _.isNil(reduced[entityValue].data)) {
+        // set the initial value for this entity if we don't have a value already or the value was a miss
+        reduced[entityValue] = entityResult;
+    } else if(!_.isNil(entityResult.data)){
+        reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
+            Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
+        _.merge(reduced[entityValue].data.details, entityResult.data.details);
+    }
+
+    return reduced;
 }
 
 function _handleRequestError(err, response, cb) {
@@ -819,5 +788,8 @@ var _createJsonErrorObject = function (msg, pointer, httpCode, code, title, meta
 module.exports = {
     doLookup: doLookup,
     startup: startup,
-    validateOptions: validateOptions
+    validateOptions: validateOptions,
+
+    // Testing Exports
+    _reduceResults: _reduceResults
 };

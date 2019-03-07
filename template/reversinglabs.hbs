@@ -1,119 +1,150 @@
-<div class="p-non-exfoliate-outer-padding">
-    {{#if block.data.details.a1000}}
-        <a class="p-link" href="{{block.data.details.a1000}}">View in ReversingLabs A1000 </a><i
-            class="fa fa-external-link p-grey"></i>
-    {{/if}}
+{{#if block.userOptions.lookupA1000}}
+    <a class="p-link" href="{{block.userOptions.a1000}}/?q={{block.entity.value}}">View in ReversingLabs A1000 {{fa-icon "external-link-square" class="external-link-icon"}}</a>
+{{/if}}
 
+<h1 class="p-title">
+    {{fa-icon "file" fixedWidth=true}} File Reputation
+</h1>
+{{#if malwarePresence.status}}
+    <div>
+        <span class="p-key">Status:</span>
+        <span class="p-value">{{malwarePresence.status}}</span>
+    </div>
+{{/if}}
+
+<div>
+    <span class="p-key">Threat Level:</span>
+    <span class="p-value">
+        {{#if (gte malwarePresence.threat_level 4)}}
+            {{fa-icon "circle" class=(concat "severity-icon " statusClass)}}
+        {{else if (gte malwarePresence.threat_level 2)}}
+            {{fa-icon "adjust" rotation=270 class=(concat "severity-icon " statusClass)}}
+        {{else}}
+            {{fa-icon "dot-circle" class=(concat "severity-icon " statusClass)}}
+        {{/if}}
+        &nbsp;{{threatLevelHuman}} ({{malwarePresence.threat_level}} / 5)
+    </span>
+</div>
+
+{{#if malwarePresence}}
+    <div>
+        <span class="p-key">AV Detection Rate:</span>
+        <span class="p-value">{{malwarePresence.scanner_percent}}%</span>
+    </div>
+    <div>
+        <span class="p-key">AV Detection Count:</span>
+        <span class="p-value">{{malwarePresence.scanner_match}} of {{malwarePresence.scanner_count}} Detections</span>
+    </div>
+{{/if}}
+{{# if malwarePresence.first_seen}}
+    <div>
+        <span class="p-key">First Seen:</span>
+        <span class="p-value">
+             {{moment-format malwarePresence.first_seen 'MM/DD/YYYY' timeZone=timezone}}
+        </span>
+    </div>
+{{/if}}
+{{#if malwarePresence.last_seen}}
+    <div>
+        <span class="p-key">Last Seen:</span>
+        <span class="p-value">
+            {{moment-format malwarePresence.last_seen 'MM/DD/YYYY' timeZone=timezone}}
+        </span>
+    </div>
+{{/if}}
+
+{{#if malwarePresence.trust_factor}}
+    <div>
+        <span class="p-key">Trust Factor:</span>
+        <span class="p-value">{{trustFactorHuman}} ({{malwarePresence.trust_factor}} / 5)</span>
+    </div>
+{{/if}}
+
+{{#if malwarePresence.classification.family_name}}
     <h1 class="p-title">
-        <i class="fa fa-fw fa-file"></i> File Reputation
+        {{fa-icon "archive" fixedWidth=true}} Classification
     </h1>
-    {{#if block.data.details.datas.malware_presence.status}}
+    {{#if malwarePresence.classification.platform}}
         <div>
-            <span class="p-key">Status:</span>
-            <span class="p-value">{{block.data.details.datas.malware_presence.status}}</span>
+            <span class="p-key">Platform:</span>
+            <span class="p-value">{{malwarePresence.classification.platform}}</span>
         </div>
     {{/if}}
-    {{#if block.data.details.scanner_detection}}
+    {{#if malwarePresence.classification.type}}
         <div>
-            <span class="p-key">AV Scanner Detection:</span>
-            <span class="p-value">{{block.data.details.scanner_detection}}</span>
+            <span class="p-key">Type:</span>
+            <span class="p-value">{{malwarePresence.classification.type}}</span>
         </div>
     {{/if}}
-    {{# if block.data.details.datas.malware_presence.first_seen}}
-        <div>
-            <span class="p-key">First Seen:</span>
-            <span class="p-value">{{moment-time block.data.details.datas.malware_presence.first_seen}}</span>
-        </div>
-    {{/if}}
-    {{# if block.data.details.datas.malware_presence.last_seen}}
-        <div>
-            <span class="p-key">Last Seen:</span>
-            <span class="p-value">{{moment-time block.data.details.datas.malware_presence.last_seen}}</span>
-        </div>
-    {{/if}}
-    {{#if block.data.details.threat}}
-        <div>
-            <span class="p-key">Threat:</span>
-            <span class="p-value">{{block.data.details.threat}}</span>
-        </div>
-    {{/if}}
-
-    {{#if block.data.details.datas.malware_presence.classification.family_name}}
-        <h1 class="p-title">
-            <i class="fa fa-fw fa-archive"></i> Classification
-        </h1>
+    {{#if malwarePresence.classification.family_name}}
         <div>
             <span class="p-key">Family Name:</span>
-            <span class="p-value">{{block.data.details.datas.malware_presence.classification.family_name}}</span>
-        </div>
-        {{# if block.data.details.datas.malware_presence.classification.type}}
-            <div>
-                <span class="p-key">Type:</span>
-                <span class="p-value">{{block.data.details.datas.malware_presence.classification.family_name}}</span>
-            </div>
-        {{/if}}
-        {{# if block.data.details.datas.malware_presence.classification.type}}
-            <div>
-                <span class="p-key">Platform:</span>
-                <span class="p-value">{{block.data.details.datas.malware_presence.classification.platform}}</span>
-            </div>
-        {{/if}}
-    {{/if}}
-
-    {{#if block.data.details.scanned_on}}
-        <h1 class="p-title">
-            <i class="fa fa-fw fa-barcode"></i>
-            Scanner Results
-            <span class="p-action view-more" {{action "toggleScanner"}}>
-                {{#if isShowingDiv}}
-                    (Hide Details<i class="fa fa-fw fa-angle-up"></i>)
-                {{else}}
-                    (View Details<i class="fa fa-fw fa-angle-down"></i>)
-                {{/if}}
-            </span>
-        </h1>
-        <div>
-            <span class="p-key">Scan Date:</span>
-            <span class="p-value">{{moment-time block.data.details.scanned_on}}</span>
-        </div>
-        <div>
-            <span class="p-value">{{block.data.details.scanner_match}}</span>
-            <span class="p-key">detections out of </span>
-            <span class="p-value">{{block.data.details.scanner_count}}</span>
-            <span class="p-key"> scanners</span>
+            <span class="p-value">{{malwarePresence.classification.family_name}}</span>
         </div>
     {{/if}}
+{{/if}}
 
-    {{#if isShowingDiv}}
-        <div id="collapse-xref" class="xref-table">
-            {{#if block.data.details.scanned_on}}
-                <table style="margin-top: 10px;">
-                    <thead>
-                    <th colspan="2">Scanner</th>
-                    <th>Result</th>
-                    </thead>
-                    <tbody>
-                    {{#each-in block.data.details.results as |key value|}}
-                        <tr>
-                            <td style="width:20px"><i
-                                    class="{{if value.result 'fa fa-bug p-red' 'fa fa-check p-green'}}"></i></td>
-                            <td>
-                                {{#if value.scanner}}
-                                    {{value.scanner}}
-                                {{/if}}
-                            </td>
-                            <td>
-                                {{#if value.result}}
-                                    {{value.result}}
-                                {{else}}
-                                    <span class="success">[No Detections]</span>
-                                {{/if}}
-                            </td>
-                        </tr>
-                    {{/each-in}}
-                    </tbody>
-                </table>
+{{#if details.scanned_on}}
+    <h1 class="p-title">
+        {{fa-icon "scanner" fixedWidth=true}}
+        Scanner Results
+        <span class="p-action view-more" {{action "toggleScanner"}}>
+            {{#if isShowingDiv}}
+                (Hide Details {{fa-icon "angle-up" fixedWidth=true}})
+            {{else}}
+                (View Details {{fa-icon "angle-down" fixedWidth=true}})
             {{/if}}
-        </div>
-    {{/if}}
-</div>
+        </span>
+    </h1>
+    <div>
+        <span class="p-key">Scan Date:</span>
+        <span class="p-value">
+            {{moment-format  details.scanned_on 'MM/DD/YYYY' timeZone=timezone}}
+        </span>
+    </div>
+    <div>
+        <span class="p-value">{{details.scanner_match}}</span>
+        <span class="p-key">detections out of </span>
+        <span class="p-value">{{details.scanner_count}}</span>
+        <span class="p-key"> scanners</span>
+    </div>
+{{/if}}
+
+{{#if isShowingScannerDetails}}
+    <div id="collapse-xref" class="xref-table">
+        {{#if details.scanned_on}}
+            <table style="margin-top: 10px;">
+                <thead>
+                <th colspan="2">Scanner</th>
+                <th>Result</th>
+                </thead>
+                <tbody>
+                {{#each-in details.results as |key value|}}
+                    <tr>
+                        <td style="width:20px">
+                            {{#if value.result}}
+                                {{fa-icon "bug" class="p-red table-icon" fixedWidth=true}}
+                            {{else}}
+                                {{fa-icon "check" class="p-green table-icon" fixedWidth=true}}
+                            {{/if}}
+                        </td>
+                        <td>
+                            {{#if value.scanner}}
+                                {{value.scanner}}
+                            {{/if}}
+                        </td>
+                        <td>
+                            {{#if value.result}}
+                                {{value.result}}
+                            {{else}}
+                                <span class="no-detections">[No Detections]</span>
+                            {{/if}}
+                        </td>
+                    </tr>
+                {{/each-in}}
+                </tbody>
+            </table>
+        {{/if}}
+    </div>
+{{/if}}
+

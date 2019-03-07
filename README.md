@@ -2,37 +2,35 @@
 
 Polarity's ReversingLabs integration gives users access to automated MD5, SHA1, SHA256 lookups within ReversingLabs.
 
-ReversingLabs is a world leader in file reputation and analysis with over 3.2 billion files analyzed to date. To get more information on ReversingLabs, please visit www.reversinglabs.com
+ReversingLabs is a world leader in file reputation and analysis with over 8 billion files analyzed to date. To get more information on ReversingLabs, please visit https://www.reversinglabs.com
 
-| ![rl_1](https://user-images.githubusercontent.com/22529325/29779502-bfab2678-8be0-11e7-9821-70d3d212c0c6.png) | ![rl_2](https://user-images.githubusercontent.com/22529325/29779529-d6cf7d72-8be0-11e7-87d1-f3dfb457f98f.png) |
-|---|---|
-|*ReversingLabs details of an MD5 Hash* | *ReversingLabs scanner results of an MD5 Hash* |
+![bba82046-f872-4fad-b66f-7330ec7909bc](https://user-images.githubusercontent.com/306319/53984862-33f81f00-40e8-11e9-828a-fa47d44268e6.GIF)
 
 ## ReversingLabs Integration Options
 
-### ReversingLabs Titanium Cloud Server
+### ReversingLabs' TitaniumCloud Server URL
 
-Your Titanium Cloud server address, please do not include the https
+TitaniumCloud Server which should include the schema (i.e., https://) and port if required
 
-### ReversingLabs Titanium Cloud Username
+### Username
 
-Your Titanium Cloud username
+ReversingLabs' TitaniumCloud API Username
 
-### ReversingLabs Titanium Cloud Password
+### Password
 
-Your Titanium Cloud password
+ReversingLabs' TitaniumCloud password
 
-### Lookup MD5 Hashes
+### Ignore Known Samples
 
-If checked, the ReversingLabs integration will send MD5 Hashes to ReversingLabs for lookup.
+If checked, the integration will only return results for samples that are marked as "Malicious" or "Suspicious". Samples marked as "Known" will be ignored.
 
-### Lookup SHA1 Hashes
+### View data in A1000
 
-If checked, the ReversingLabs integration will send SHA1 Hashes to ReversingLabs for lookup.
+If checked, the integration will create a link that allows users to view information in their A1000 system
 
-### Lookup SHA256 Hashes
+### ReversingLabs' A1000 Server URL
 
-If checked, the ReversingLabs integration will send SHA256 Hashes to ReversingLabs for lookup.
+A1000 Server URL which should include the schema (i.e., https://) and port if required
 
 ## Installation Instructions
 

@@ -1,225 +1,225 @@
 'use strict';
 
-let request = require('request');
-let _ = require('lodash');
-let util = require('util');
-let async = require('async');
-let log = null;
-let fs = require('fs');
-let config = require('./config/config');
+const request = require('request');
+const async = require('async');
+const fs = require('fs');
+const config = require('./config/config');
 
-const HASH_ICON = '<i class="fa fa-bug"></i>';
+const BUG_ICON = `<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bug" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="svg-inline--fa fa-bug fa-w-16"><path fill="currentColor" d="M511.988 288.9c-.478 17.43-15.217 31.1-32.653 31.1H424v16c0 21.864-4.882 42.584-13.6 61.145l60.228 60.228c12.496 12.497 12.496 32.758 0 45.255-12.498 12.497-32.759 12.496-45.256 0l-54.736-54.736C345.886 467.965 314.351 480 280 480V236c0-6.627-5.373-12-12-12h-24c-6.627 0-12 5.373-12 12v244c-34.351 0-65.886-12.035-90.636-32.108l-54.736 54.736c-12.498 12.497-32.759 12.496-45.256 0-12.496-12.497-12.496-32.758 0-45.255l60.228-60.228C92.882 378.584 88 357.864 88 336v-16H32.666C15.23 320 .491 306.33.013 288.9-.484 270.816 14.028 256 32 256h56v-58.745l-46.628-46.628c-12.496-12.497-12.496-32.758 0-45.255 12.498-12.497 32.758-12.497 45.256 0L141.255 160h229.489l54.627-54.627c12.498-12.497 32.758-12.497 45.256 0 12.496 12.497 12.496 32.758 0 45.255L424 197.255V256h56c17.972 0 32.484 14.816 31.988 32.9zM257 0c-61.856 0-112 50.144-112 112h224C369 50.144 318.856 0 257 0z" class=""></path></svg>`;
+
+let log = null;
 let requestWithDefaults;
 
 function startup(logger) {
-    let defaults = {};
-    log = logger;
+  let defaults = {};
+  log = logger;
 
-    if (typeof config.request.cert === 'string' && config.request.cert.length > 0) {
-        defaults.cert = fs.readFileSync(config.request.cert);
-    }
+  if (typeof config.request.cert === 'string' && config.request.cert.length > 0) {
+    defaults.cert = fs.readFileSync(config.request.cert);
+  }
 
-    if (typeof config.request.key === 'string' && config.request.key.length > 0) {
-        defaults.key = fs.readFileSync(config.request.key);
-    }
+  if (typeof config.request.key === 'string' && config.request.key.length > 0) {
+    defaults.key = fs.readFileSync(config.request.key);
+  }
 
-    if (typeof config.request.passphrase === 'string' && config.request.passphrase.length > 0) {
-        defaults.passphrase = config.request.passphrase;
-    }
+  if (typeof config.request.passphrase === 'string' && config.request.passphrase.length > 0) {
+    defaults.passphrase = config.request.passphrase;
+  }
 
-    if (typeof config.request.ca === 'string' && config.request.ca.length > 0) {
-        defaults.ca = fs.readFileSync(config.request.ca);
-    }
+  if (typeof config.request.ca === 'string' && config.request.ca.length > 0) {
+    defaults.ca = fs.readFileSync(config.request.ca);
+  }
 
-    if (typeof config.request.proxy === 'string' && config.request.proxy.length > 0) {
-        defaults.proxy = config.request.proxy;
-    }
+  if (typeof config.request.proxy === 'string' && config.request.proxy.length > 0) {
+    defaults.proxy = config.request.proxy;
+  }
 
-    if (typeof config.request.rejectUnauthorized === 'boolean') {
-        defaults.rejectUnauthorized = config.request.rejectUnauthorized;
-    }
+  if (typeof config.request.rejectUnauthorized === 'boolean') {
+    defaults.rejectUnauthorized = config.request.rejectUnauthorized;
+  }
 
-    requestWithDefaults = request.defaults(defaults);
+  requestWithDefaults = request.defaults(defaults);
+}
+
+function _getReversingLabsType(entity) {
+  if (entity.isMD5) {
+    return 'md5';
+  }
+  if (entity.isSHA256) {
+    return 'sha256';
+  }
+  if (entity.isSHA1) {
+    return 'sha1';
+  }
 }
 
 function doLookup(entities, options, cb) {
-    log.debug({
-        entities: entities.map(entity => {
-            return entity.value;
-        })
-    }, 'doLookup Entity Values');
-    log.trace({entities: entities}, "doLookup Entity Objects");
-
-    let sha256Elements = [];
-    let md5Elements = [];
-    let sha1Elements = [];
-    let lookupResultsSha1 = [];
-    let lookupResultsSha256 = [];
-    let lookupResultsMd = [];
-
-    for (let i = 0; i < entities.length; i++) {
-        let entityObj = entities[i];
-
-        if (entityObj.isSHA256 && options.lookupSha256) {
-            sha256Elements.push(entityObj);
-        } else if (entityObj.isSHA1 && options.lookupSha1) {
-            sha1Elements.push(entityObj);
-        } else if (entityObj.isMD5 && options.lookupMd5) {
-            md5Elements.push(entityObj);
-        }
-    }
-
-    async.parallel({
-        sha1: function (done) {
-            _lookupEntitySHA1(sha1Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        },
-        md5: function (done) {
-            _lookupEntityMD5(md5Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        },
-        sha256: function (done) {
-            _lookupEntitySha256(sha256Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        },
-        sha1xref: function (done) {
-            _lookupEntitySHA1Xref(sha1Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        },
-        md5xref: function (done) {
-            _lookupEntityMD5Xref(md5Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        },
-        sha256xref: function (done) {
-            _lookupEntitySha256Xref(sha256Elements, options, function (err, results) {
-                if (err) {
-                    done(err);
-                    return;
-                }
-                done(null, results);
-            });
-        }
-
-    }, function (err, results) {
+  let lookupResults = [];
+  async.each(
+    entities,
+    (entity, next) => {
+      let rlType = _getReversingLabsType(entity);
+      _lookupEntity(entity, rlType, options, function(err, result) {
         if (err) {
-            cb(err);
-        } else {
-            log.debug({
-                sha1: results.sha1.map(result => {
-                    return result.entity.value;
-                }),
-                sha1xref: results.sha1xref.map(result => {
-                    return result.entity.value;
-                }),
-                md5: results.md5.map(result => {
-                    return result.entity.value;
-                }),
-                md5xref: results.md5xref.map(result => {
-                    return result.entity.value;
-                }),
-                sha256: results.sha256.map(result => {
-                    return result.entity.value;
-                }),
-                sha256xref: results.sha256xref.map(result => {
-                    return result.entity.value;
-                })
-            }, 'Lookup Result Summary (Entities with Results)');
-
-            log.trace({results: results}, "Lookup Results:");
-
-            results.sha1.forEach(function (result) {
-                lookupResultsSha1.push(result);
-            });
-            results.md5.forEach(function (result) {
-                lookupResultsMd.push(result);
-            });
-            results.sha256.forEach(function (result) {
-                lookupResultsSha256.push(result);
-            });
-            results.sha1xref.forEach(function (result) {
-                lookupResultsSha1.push(result);
-            });
-            results.md5xref.forEach(function (result) {
-                lookupResultsMd.push(result);
-            });
-            results.sha256xref.forEach(function (result) {
-                lookupResultsSha256.push(result);
-            });
-
-            let totalResultsSha1 = _.reduce(lookupResultsSha1, _reduceResults, {});
-            let totalResultsSha256 = _.reduce(lookupResultsSha256,_reduceResults, {});
-            let totalResultsMd = _.reduce(lookupResultsMd, _reduceResults, {});
-
-            let finalTotalLookupResults = [];
-
-            _.forEach(_.keys(totalResultsSha1), function (key) {
-                finalTotalLookupResults.push(totalResultsSha1[key]);
-            });
-
-            _.forEach(_.keys(totalResultsSha256), function (key) {
-                finalTotalLookupResults.push(totalResultsSha256[key]);
-            });
-
-            _.forEach(_.keys(totalResultsMd), function (key) {
-                finalTotalLookupResults.push(totalResultsMd[key]);
-            });
-
-            log.trace({LookupResults: finalTotalLookupResults}, "Final Lookup Results");
-
-            cb(null, finalTotalLookupResults);
+          return next(err);
         }
-    });
+        lookupResults.push(result);
+        next();
+      });
+    },
+    (err) => {
+      cb(err, lookupResults);
+    }
+  );
 }
 
-function _reduceResults(reduced, entityResult){
-    if (!entityResult) {
-        return reduced;
+function _getEntitySearchUrl(rlType, entity, options) {
+  if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    throw new Error('invalid entity type provided to _getEntitySearchUrl');
+  }
+
+  return `${options.url}/api/databrowser/malware_presence/query/${rlType}/${entity.value}?extended=true&format=json`;
+}
+
+function _getEntityXRefSearchUrl(rlType, entity, options) {
+  if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    throw new Error('invalid entity type provided to _getEntityXRefSearchUrl');
+  }
+
+  return `${options.url}/api/xref/v2/query/${rlType}/${entity.value}?extended=true&format=json`;
+}
+
+function _getA1000Link(options, entityObj) {
+    return options.lookupA1000 && options.a1000.length > 0 ? 'https://' + options.a1000 + '/?q=' + entityObj.value : null;
+}
+
+function _lookupEntity(entity, rlType, options, cb) {
+  let requestOptions = {
+    uri: _getEntitySearchUrl(rlType, entity, options),
+    method: 'GET',
+    auth: {
+      username: options.username,
+      password: options.password
+    },
+    json: true
+  };
+
+  requestWithDefaults(requestOptions, function(err, response, body) {
+    _handleRequestError(err, response, function(jsonApiError) {
+      if (jsonApiError) {
+        cb(jsonApiError);
+        return;
+      }
+
+      if (
+        response.statusCode === 404 ||
+        body == null ||
+        body.rl == null ||
+        body.rl.malware_presence.status === 'UNKNOWN'
+      ) {
+        return cb(null, {
+          entity: entity,
+          data: null
+        });
+      }
+
+      log.trace({ body: body }, 'SHA1 Response Body Results');
+
+      // The lookup results returned is an array of lookup objects with the following format
+      let malwarePresence = body.rl.malware_presence;
+      if (malwarePresence.status === 'MALICIOUS') {
+        cb(null, {
+          entity: entity,
+          data: {
+            summary: [
+              `${malwarePresence.status} ${rlType.toUpperCase()}`,
+              `${malwarePresence.scanner_match} ${BUG_ICON}/ ${malwarePresence.scanner_count}`
+            ],
+            details: {
+              threat: `${malwarePresence.threat_level}/${malwarePresence.trust_factor} ${
+                malwarePresence.classification.platform
+              }.${malwarePresence.classification.type}.${malwarePresence.classification.family_name}`,
+              threats:
+                malwarePresence.classification.platform +
+                '.' +
+                malwarePresence.classification.type +
+                '.' +
+                malwarePresence.classification.family_name,
+              data: body.rl,
+              a1000: _getA1000Link(options, entity)
+            }
+          }
+        });
+      } else {
+        // The lookup results returned is an array of lookup objects with the following format
+        cb(null, {
+          entity: entity,
+          data: {
+            summary: [`${malwarePresence.status} ${rlType.toUpperCase()}`],
+            details: {
+              data: body.rl,
+              a1000: _getA1000Link(options, entity)
+            }
+          }
+        });
+      }
+    });
+  });
+}
+
+function _lookupEntityXref(entityObj, type, options, cb) {
+  let requestOptions = {
+    uri: _getEntityXRefSearchUrl(type, entityObj, options),
+    method: 'GET',
+    auth: {
+      username: options.username,
+      password: options.password
+    },
+    json: true
+  };
+
+  requestWithDefaults(requestOptions, function(err, response, body) {
+    _handleRequestError(err, response, function(jsonApiError) {
+      if (jsonApiError) {
+        return cb(jsonApiError);
+      }
+
+      if (response.statusCode === 404 || body.rl == null || body.rl.sample.xref === '') {
+        return cb(null, null);
+      }
+
+      cb(null, body);
+    });
+  });
+}
+
+function onDetails(lookupObject, options, cb) {
+  let rlType = _getReversingLabsType(lookupObject.entity);
+
+  _lookupEntityXref(lookupObject.entity, rlType, options, (err, result) => {
+    if (err) {
+      return cb(err);
     }
 
-    let entityValue = entityResult.entity.value;
-
-    if (_.isNil(reduced[entityValue]) || _.isNil(reduced[entityValue].data)) {
-        // set the initial value for this entity if we don't have a value already or the value was a miss
-        reduced[entityValue] = entityResult;
-    } else if(!_.isNil(entityResult.data)){
-        reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
-            Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
-        _.merge(reduced[entityValue].data.details, entityResult.data.details);
+    if (result !== null) {
+      lookupObject.data.details.scanner_match = result.rl.sample.xref[0].scanner_match;
+      lookupObject.data.details.scanner_count = result.rl.sample.xref[0].scanner_count;
+      lookupObject.data.details.scanned_on = result.rl.sample.xref[0].scanned_on;
+      lookupObject.data.details.results = result.rl.sample.xref[0].results;
     }
 
-    return reduced;
+    cb(null, lookupObject.data);
+  });
 }
 
 function _handleRequestError(err, response, cb) {
     if (err) {
-        cb(_createJsonErrorPayload("HTTP Request Failed", null, '500', '2A', 'HTTP Error', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload('HTTP Request Failed', null, '500', '2A', 'HTTP Error', {
+                response: response,
+                err: err
+            })
+        );
         return;
     }
 
@@ -230,566 +230,155 @@ function _handleRequestError(err, response, cb) {
     }
 
     if (response.statusCode === 401) {
-        cb(_createJsonErrorPayload("Request requires user authentication", null, '401', '2A', 'Unauthorized', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload('Request requires user authentication', null, '401', '2A', 'Unauthorized', {
+                err: err
+            })
+        );
         return;
     }
 
     if (response.statusCode === 400) {
-        cb(_createJsonErrorPayload("Request could not be understood by the server due to malformed syntax", null, '400', '2A', 'Bad Request', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload(
+                'Request could not be understood by the server due to malformed syntax',
+                null,
+                '400',
+                '2A',
+                'Bad Request',
+                {
+                    err: err
+                }
+            )
+        );
         return;
     }
     if (response.statusCode === 403) {
-        cb(_createJsonErrorPayload("The server understood the request, but is refusing to fulfill it", null, '403', '2A', 'Forbidden', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload(
+                'The server understood the request, but is refusing to fulfill it',
+                null,
+                '403',
+                '2A',
+                'Forbidden',
+                {
+                    err: err
+                }
+            )
+        );
         return;
     }
 
     if (response.statusCode === 500) {
-        cb(_createJsonErrorPayload("Server encountered an unexpected condition which prevented it from fulfilling the request", null, '500', '2A', 'Internal Server Error', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload(
+                'Server encountered an unexpected condition which prevented it from fulfilling the request',
+                null,
+                '500',
+                '2A',
+                'Internal Server Error',
+                {
+                    err: err
+                }
+            )
+        );
         return;
     }
 
     if (response.statusCode === 503) {
-        cb(_createJsonErrorPayload("Server is currently unable to handle the request due to a temporary overloading or maintenance of the server", null, '503', '2A', 'Service Unavailable ', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload(
+                'Server is currently unable to handle the request due to a temporary overloading or maintenance of the server',
+                null,
+                '503',
+                '2A',
+                'Service Unavailable ',
+                {
+                    err: err
+                }
+            )
+        );
         return;
     }
 
     if (response.statusCode !== 200) {
-        cb(_createJsonErrorPayload("The integration received an unexpected non-200 HTTP status code", null, response.statusCode.toString(), '2A', 'Unexpected Non-200 HTTP Code', {
-            err: err
-        }));
+        cb(
+            _createJsonErrorPayload(
+                'The integration received an unexpected non-200 HTTP status code',
+                null,
+                response.statusCode.toString(),
+                '2A',
+                'Unexpected Non-200 HTTP Code',
+                {
+                    err: err
+                }
+            )
+        );
         return;
     }
 
     cb(null);
 }
 
-function _lookupEntitySHA1Xref(sha1XrefEntities, options, cb) {
-    if (sha1XrefEntities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(sha1XrefEntities, (entity, done) => {
-        let uri = 'https://' + options.url + '/api/xref/v2/query/sha1/' + entity.value + '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 XRef Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                // We consider this a miss
-                if (response.statusCode === 404 || body == null || body.rl == null || body.rl.sample.xref === "") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "SHA1 Xref Response Body Results");
-
-                // The lookup results returned is an array of lookup objects with the following format
-                lookupResults.push({
-                    entity: entity,
-                    // Required: An object containing everything you want passed to the template
-                    data: {
-                        // Required: These are the tags that are displayed in your template
-                        summary: [body.rl.sample.xref[0].scanner_match + " " + HASH_ICON + " " + body.rl.sample.xref[0].scanner_count],
-                        // Data that you want to pass back to the notification window details block
-                        details: {
-                            scanner_match: body.rl.sample.xref[0].scanner_match,
-                            scanner_count: body.rl.sample.xref[0].scanner_count,
-                            scanned_on: body.rl.sample.xref[0].scanned_on,
-                            results: body.rl.sample.xref[0].results,
-                            a1000: _getA1000Link(options, entity)
-                        }
-                    }
-                });
-
-                done(null);
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-function _lookupEntitySHA1(sha1Entities, options, cb) {
-    if (sha1Entities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(sha1Entities, (entity, done) => {
-        let uri = 'https://' + options.url + '/api/databrowser/malware_presence/query/sha1/' + entity.value +
-            '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                if (response.statusCode === 404 || body == null || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "SHA1 Response Body Results");
-
-                // The lookup results returned is an array of lookup objects with the following format
-                if (body.rl.malware_presence.status === "MALICIOUS") {
-                    lookupResults.push({
-                        entity: entity,
-                        // Required: this is the string value that is displayed in the template
-                        entity_name: entity.value,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            displayValue: entity.value,
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA1"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
-                                threat: body.rl.malware_presence.threat_level + '/' + body.rl.malware_presence.trust_factor + " " + body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                threats: body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-                    });
-                    done(null);
-                } else {
-                    // The lookup results returned is an array of lookup objects with the following format
-                    lookupResults.push({
-                        // Required: This is the entity object pass ed into the integration doLookup method
-                        entity: entity,
-                        // Required: this is the string value that is displayed in the template
-                        entity_name: entity.value,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA1"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-                    });
-                    done(null);
-                }
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-
-function _lookupEntitySha256Xref(sha256Entities, options, cb) {
-    if (sha256Entities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(sha256Entities, (entity, done) => {
-        let uri = 'https://' + options.url + '/api/xref/v2/query/sha256/' + entity.value + '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                if (response.statusCode === 404 || body.rl == null || body.rl.sample.xref === "") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "SHA256 Xref Results Body");
-
-                lookupResults.push({
-                    entity: entity,
-                    // Required: An object containing everything you want passed to the template
-                    data: {
-                        // Required: These are the tags that are displayed in your template
-                        summary: [body.rl.sample.xref[0].scanner_match + " " + HASH_ICON + " " + body.rl.sample.xref[0].scanner_count],
-                        // Data that you want to pass back to the notification window details block
-                        details: {
-                            scanner_match: body.rl.sample.xref[0].scanner_match,
-                            scanner_count: body.rl.sample.xref[0].scanner_count,
-                            scanned_on: body.rl.sample.xref[0].scanned_on,
-                            results: body.rl.sample.xref[0].results,
-                            a1000: _getA1000Link(options, entity)
-                        }
-                    }
-                });
-
-                done(null);
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-
-function _lookupEntityMD5Xref(md5Entities, options, cb) {
-    if (md5Entities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(md5Entities, (entity, done) => {
-        let uri = 'https://' + options.url + '/api/xref/v2/query/md5/' + entity.value + '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'MD5 Xref Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                if (response.statusCode === 404 || body.rl == null || body.rl.sample.xref === "") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "MD5 Xref Response Body Results");
-
-                lookupResults.push({
-                    entity: entity,
-                    // Required: An object containing everything you want passed to the template
-                    data: {
-                        // Required: These are the tags that are displayed in your template
-                        summary: [body.rl.sample.xref[0].scanner_match + " " + HASH_ICON + " " + body.rl.sample.xref[0].scanner_count],
-                        // Data that you want to pass back to the notification window details block
-                        details: {
-                            scanner_match: body.rl.sample.xref[0].scanner_match,
-                            scanner_count: body.rl.sample.xref[0].scanner_count,
-                            scanned_on: body.rl.sample.xref[0].scanned_on,
-                            results: body.rl.sample.xref[0].results,
-                            a1000: _getA1000Link(options, entity)
-                        }
-                    }
-                });
-                done(null);
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-function _lookupEntitySha256(sha256Entities, options, cb) {
-    if (sha256Entities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(sha256Entities, (entity, done) => {
-        let uri = 'https://ticloud-cdn-api.reversinglabs.com/api/databrowser/malware_presence/query/sha256/' +
-            entity.value + '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'SHA 256 Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                if (response.statusCode === 404 || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "SHA256 Request Body Results");
-
-                if (body.rl.malware_presence.status === "MALICIOUS") {
-                    lookupResults.push({
-                        entity: entity,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA256"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
-                                threat: body.rl.malware_presence.threat_level + '/' + body.rl.malware_presence.trust_factor + " " + body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                threats: body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-                    });
-                    done(null);
-                } else {
-                    // The lookup results returned is an array of lookup objects with the following format
-                    lookupResults.push({
-                        // Required: This is the entity object pass ed into the integration doLookup method
-                        entity: entity,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " SHA256"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-                    });
-                    done(null);
-                }
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-
-function _lookupEntityMD5(md5Entities, options, cb) {
-    if (md5Entities.length === 0) {
-        cb(null, []);
-        return;
-    }
-
-    let lookupResults = [];
-
-    async.each(md5Entities, (entity, done) => {
-        let uri = 'https://' + options.url + '/api/databrowser/malware_presence/query/md5/' +
-            entity.value + '?extended=true&format=json';
-
-        log.debug({entity: entity.value, uri: uri}, 'MD5 Request Info');
-
-        requestWithDefaults({
-            uri: uri,
-            method: 'GET',
-            auth: {
-                'username': options.username,
-                'password': options.password
-            },
-            json: true
-        }, function (err, response, body) {
-            _handleRequestError(err, response, function (jsonApiError) {
-                if (jsonApiError) {
-                    done(jsonApiError);
-                    return;
-                }
-
-                if (response.statusCode === 404 || body.rl == null || body.rl.malware_presence.status === "UNKNOWN") {
-                    lookupResults.push({
-                        entity: entity,
-                        data: null
-                    });
-                    done(null);
-                    return;
-                }
-
-                log.trace({body: body}, "MD5 Response Body Results");
-
-                if (body.rl.malware_presence.status === "MALICIOUS") {
-                    lookupResults.push({
-                        entity: entity,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " MD5"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                scanner_detection: body.rl.malware_presence.scanner_percent + ".00 % - " + body.rl.malware_presence.scanner_match + " of " + body.rl.malware_presence.scanner_count + " AV Engine Detections",
-                                threat: body.rl.malware_presence.threat_level + '/' + body.rl.malware_presence.trust_factor + " " + body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                threats: body.rl.malware_presence.classification.platform + "." + body.rl.malware_presence.classification.type + "." + body.rl.malware_presence.classification.family_name,
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-
-                    });
-                    done(null);
-                } else {
-                    // The lookup results returned is an array of lookup objects with the following format
-                    lookupResults.push({
-                        // Required: This is the entity object pass ed into the integration doLookup method
-                        entity: entity,
-                        // Required: An object containing everything you want passed to the template
-                        data: {
-                            // Required: These are the tags that are displayed in your template
-                            summary: [body.rl.malware_presence.status + " MD5"],
-                            // Data that you want to pass back to the notification window details block
-                            details: {
-                                datas: body.rl,
-                                a1000: _getA1000Link(options, entity)
-                            }
-                        }
-                    });
-                    done(null);
-                }
-            });
-        });
-    }, function (err) {
-        cb(err, lookupResults);
-    });
-}
-
-function _getA1000Link(options, entityObj) {
-    return options.lookupA1000 && options.a1000.length > 0 ?
-        'https://' + options.a1000 + '/?q=' + entityObj.value : null;
-}
-
-
 function validateOptions(userOptions, cb) {
-    let errors = [];
-    if (typeof userOptions.password.value !== 'string' ||
-        (typeof userOptions.password.value === 'string' && userOptions.password.value.length === 0)) {
-        errors.push({
-            key: 'password',
-            message: 'You must provide a valid password'
-        })
-    }
+  let errors = [];
+  if (
+    typeof userOptions.password.value !== 'string' ||
+    (typeof userOptions.password.value === 'string' && userOptions.password.value.length === 0)
+  ) {
+    errors.push({
+      key: 'password',
+      message: 'You must provide a valid password'
+    });
+  }
 
-    if (typeof userOptions.username.value !== 'string' ||
-        (typeof userOptions.username.value === 'string' && userOptions.username.value.length === 0)) {
-        errors.push({
-            key: 'username',
-            message: 'You must provide a Reversing Labs Username'
-        })
-    }
+  if (
+    typeof userOptions.username.value !== 'string' ||
+    (typeof userOptions.username.value === 'string' && userOptions.username.value.length === 0)
+  ) {
+    errors.push({
+      key: 'username',
+      message: 'You must provide a Reversing Labs Username'
+    });
+  }
 
-    cb(null, errors);
+  cb(null, errors);
 }
 
 // function that takes the ErrorObject and passes the error message to the notification window
-var _createJsonErrorPayload = function (msg, pointer, httpCode, code, title, meta) {
-    let errors = [
-        _createJsonErrorObject(msg, pointer, httpCode, code, title, meta)
-    ];
+function _createJsonErrorPayload(msg, pointer, httpCode, code, title, meta) {
+  let errors = [_createJsonErrorObject(msg, pointer, httpCode, code, title, meta)];
 
-    log.error({errors: errors});
+  log.error({ errors: errors });
 
-    return {errors: errors};
-};
+  return { errors: errors };
+}
 
 // function that creates the Json object to be passed to the payload
-var _createJsonErrorObject = function (msg, pointer, httpCode, code, title, meta) {
-    let error = {
-        detail: msg,
-        status: httpCode.toString(),
-        title: title,
-        code: 'RL_' + code.toString()
+function _createJsonErrorObject(msg, pointer, httpCode, code, title, meta) {
+  let error = {
+    detail: msg,
+    status: httpCode.toString(),
+    title: title,
+    code: 'RL_' + code.toString()
+  };
+
+  if (pointer) {
+    error.source = {
+      pointer: pointer
     };
+  }
 
-    if (pointer) {
-        error.source = {
-            pointer: pointer
-        };
-    }
+  if (meta) {
+    error.meta = meta;
+  }
 
-    if (meta) {
-        error.meta = meta;
-    }
-
-    return error;
-};
+  return error;
+}
 
 module.exports = {
-    doLookup: doLookup,
-    startup: startup,
-    validateOptions: validateOptions,
-
-    // Testing Exports
-    _reduceResults: _reduceResults
+  doLookup: doLookup,
+  startup: startup,
+  validateOptions: validateOptions,
+  onDetails: onDetails
 };

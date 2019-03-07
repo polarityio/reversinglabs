@@ -2,12 +2,12 @@
   "main": "./integration.js",
   "name": "ReversingLabs",
   "description": "ReversingLabs integrations",
-  "version": "1.2.5-beta",
+  "version": "3.0.0",
   "private": true,
   "dependencies": {
-    "request": "2.88.0",
-    "async": "2.6.1",
-    "lodash": "4.17.11"
+    "request": "^2.88",
+    "async": "^2.6",
+    "lodash": "^4.17"
   },
   "devDependencies": {
     "chai": "~4.1",

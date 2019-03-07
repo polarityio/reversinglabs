@@ -2,7 +2,7 @@
 
 Polarity's ReversingLabs integration gives users access to automated MD5, SHA1, SHA256 lookups within ReversingLabs.
 
-ReversingLabs is a world leader in file reputation and analysis with over 3.2 billion files analyzed to date. To get more information on ReversingLabs, please visit www.reversinglabs.com
+ReversingLabs is a world leader in file reputation and analysis with over 8 billion files analyzed to date. To get more information on ReversingLabs, please visit https://www.reversinglabs.com
 
 | ![rl_1](https://user-images.githubusercontent.com/22529325/29779502-bfab2678-8be0-11e7-9821-70d3d212c0c6.png) | ![rl_2](https://user-images.githubusercontent.com/22529325/29779529-d6cf7d72-8be0-11e7-87d1-f3dfb457f98f.png) |
 |---|---|
@@ -10,29 +10,25 @@ ReversingLabs is a world leader in file reputation and analysis with over 3.2 bi
 
 ## ReversingLabs Integration Options
 
-### ReversingLabs Titanium Cloud Server
+### ReversingLabs' TitaniumCloud Server URL
 
-Your Titanium Cloud server address, please do not include the https
+TitaniumCloud Server which should include the schema (i.e., https://) and port if required
 
-### ReversingLabs Titanium Cloud Username
+### Username
 
-Your Titanium Cloud username
+ReversingLabs' TitaniumCloud API Username
 
-### ReversingLabs Titanium Cloud Password
+### Password
 
-Your Titanium Cloud password
+ReversingLabs' TitaniumCloud password
 
-### Lookup MD5 Hashes
+### View data in A1000
 
-If checked, the ReversingLabs integration will send MD5 Hashes to ReversingLabs for lookup.
+If checked, the integration will create a link that allows users to view information in their A1000 system
 
-### Lookup SHA1 Hashes
+### ReversingLabs' A1000 Server URL
 
-If checked, the ReversingLabs integration will send SHA1 Hashes to ReversingLabs for lookup.
-
-### Lookup SHA256 Hashes
-
-If checked, the ReversingLabs integration will send SHA256 Hashes to ReversingLabs for lookup.
+A1000 Server URL which should include the schema (i.e., https://) and port if required
 
 ## Installation Instructions
 

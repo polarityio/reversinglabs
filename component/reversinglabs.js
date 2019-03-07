@@ -1,14 +1,14 @@
 'use strict';
 polarity.export = PolarityComponent.extend({
-
-    actions: {
-        toggleScanner() {
-            this.toggleProperty('isShowingDiv');
-        },
-
-        toggleFile() {
-            this.toggleProperty('isShowingFile');
-        }
+  details: Ember.computed.alias('block.data.details'),
+  malwarePresence: Ember.computed.alias('details.data.malware_presence'),
+  timezone: Ember.computed('Intl', function() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  }),
+  isShowingScannerDetails: false,
+  actions: {
+    toggleScanner() {
+      this.toggleProperty('isShowingScannerDetails');
     }
-
+  }
 });

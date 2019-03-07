@@ -1,7 +1,7 @@
 module.exports = {
   name: "ReversingLabs",
   acronym: "RL",
-  logging: { level: "trace" },
+  logging: { level: "info" },
   entityTypes: ["hash"],
   description: "ReversingLabs integration for real-time file hash lookups",
   styles: ["./styles/reversinglabs.less"],

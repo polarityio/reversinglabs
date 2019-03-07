@@ -1,6 +1,5 @@
-
-{{#if details.a1000}}
-    <a class="p-link" href="{{details.a1000}}">View in ReversingLabs A1000 {{fa-icon "external-link-square" class="external-link-icon"}}</a>
+{{#if block.userOptions.lookupA1000}}
+    <a class="p-link" href="{{block.userOptions.a1000}}/?q={{block.entity.value}}">View in ReversingLabs A1000 {{fa-icon "external-link-square" class="external-link-icon"}}</a>
 {{/if}}
 
 <h1 class="p-title">
@@ -12,6 +11,21 @@
         <span class="p-value">{{malwarePresence.status}}</span>
     </div>
 {{/if}}
+
+<div>
+    <span class="p-key">Threat Level:</span>
+    <span class="p-value">
+        {{#if (gte malwarePresence.threat_level 4)}}
+            {{fa-icon "circle" class=(concat "severity-icon " statusClass)}}
+        {{else if (gte malwarePresence.threat_level 2)}}
+            {{fa-icon "adjust" rotation=270 class=(concat "severity-icon " statusClass)}}
+        {{else}}
+            {{fa-icon "dot-circle" class=(concat "severity-icon " statusClass)}}
+        {{/if}}
+        &nbsp;{{threatLevelHuman}} ({{malwarePresence.threat_level}} / 5)
+    </span>
+</div>
+
 {{#if malwarePresence}}
     <div>
         <span class="p-key">AV Detection Rate:</span>
@@ -19,7 +33,7 @@
     </div>
     <div>
         <span class="p-key">AV Detection Count:</span>
-        <span class="p-value">{{malwarePresence.scanner_match}} {{fa-icon "bug" fixedWidth=true class="icon"}} of {{malwarePresence.scanner_count}} Detections</span>
+        <span class="p-value">{{malwarePresence.scanner_match}} of {{malwarePresence.scanner_count}} Detections</span>
     </div>
 {{/if}}
 {{# if malwarePresence.first_seen}}
@@ -38,10 +52,11 @@
         </span>
     </div>
 {{/if}}
-{{#if malwarePresence.threat_level}}
+
+{{#if malwarePresence.trust_factor}}
     <div>
-        <span class="p-key">Threat:</span>
-        <span class="p-value">{{malwarePresence.threat_level}} / {{malwarePresence.trust_factor}}</span>
+        <span class="p-key">Trust Factor:</span>
+        <span class="p-value">{{trustFactorHuman}} ({{malwarePresence.trust_factor}} / 5)</span>
     </div>
 {{/if}}
 

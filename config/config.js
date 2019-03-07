@@ -63,6 +63,16 @@ module.exports = {
       adminOnly: false
     },
     {
+      key: 'ignoreKnownSamples',
+      name: 'Ignore Known Samples',
+      description:
+        'If checked, the integration will only return results for samples that are marked as "Malicious" or "Suspicious".  Samples marked as "Known" will be ignored.',
+      default: true,
+      type: 'boolean',
+      userCanEdit: true,
+      adminOnly: false
+    },
+    {
       key: 'lookupA1000',
       name: 'View data in A1000',
       description:

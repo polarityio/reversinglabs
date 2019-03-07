@@ -5,6 +5,17 @@ const async = require('async');
 const fs = require('fs');
 const config = require('./config/config');
 
+const SEVERITY_LEVELS = {
+  0: 'none',
+  1: 'low',
+  2: 'medium',
+  3: 'medium',
+  4: 'high',
+  5: 'high'
+};
+
+const STATUS_TYPES = ['KNOWN', 'UNKNOWN', 'MALICIOUS', 'SUSPICIOUS'];
+
 const BUG_ICON = `<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bug" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="svg-inline--fa fa-bug fa-w-16"><path fill="currentColor" d="M511.988 288.9c-.478 17.43-15.217 31.1-32.653 31.1H424v16c0 21.864-4.882 42.584-13.6 61.145l60.228 60.228c12.496 12.497 12.496 32.758 0 45.255-12.498 12.497-32.759 12.496-45.256 0l-54.736-54.736C345.886 467.965 314.351 480 280 480V236c0-6.627-5.373-12-12-12h-24c-6.627 0-12 5.373-12 12v244c-34.351 0-65.886-12.035-90.636-32.108l-54.736 54.736c-12.498 12.497-32.759 12.496-45.256 0-12.496-12.497-12.496-32.758 0-45.255l60.228-60.228C92.882 378.584 88 357.864 88 336v-16H32.666C15.23 320 .491 306.33.013 288.9-.484 270.816 14.028 256 32 256h56v-58.745l-46.628-46.628c-12.496-12.497-12.496-32.758 0-45.255 12.498-12.497 32.758-12.497 45.256 0L141.255 160h229.489l54.627-54.627c12.498-12.497 32.758-12.497 45.256 0 12.496 12.497 12.496 32.758 0 45.255L424 197.255V256h56c17.972 0 32.484 14.816 31.988 32.9zM257 0c-61.856 0-112 50.144-112 112h224C369 50.144 318.856 0 257 0z" class=""></path></svg>`;
 
 let log = null;
@@ -63,7 +74,12 @@ function doLookup(entities, options, cb) {
         if (err) {
           return next(err);
         }
-        lookupResults.push(result);
+
+        // null results are ignored as they have been filtered out based on user options
+        if (result !== null) {
+          lookupResults.push(result);
+        }
+
         next();
       });
     },
@@ -87,10 +103,6 @@ function _getEntityXRefSearchUrl(rlType, entity, options) {
   }
 
   return `${options.url}/api/xref/v2/query/${rlType}/${entity.value}?extended=true&format=json`;
-}
-
-function _getA1000Link(options, entityObj) {
-    return options.lookupA1000 && options.a1000.length > 0 ? 'https://' + options.a1000 + '/?q=' + entityObj.value : null;
 }
 
 function _lookupEntity(entity, rlType, options, cb) {
@@ -123,37 +135,23 @@ function _lookupEntity(entity, rlType, options, cb) {
         });
       }
 
-      log.trace({ body: body }, 'SHA1 Response Body Results');
-
-      // The lookup results returned is an array of lookup objects with the following format
+      // Check if we need to ignore this result because the user as opted to ignore known samples
       let malwarePresence = body.rl.malware_presence;
-      if (malwarePresence.status === 'MALICIOUS') {
-        cb(null, {
-          entity: entity,
-          data: {
-            summary: [
-              `${malwarePresence.status} ${rlType.toUpperCase()}`,
-              `${malwarePresence.scanner_match} ${BUG_ICON}/ ${malwarePresence.scanner_count}`
-            ],
-            details: {
-              data: body.rl,
-              a1000: _getA1000Link(options, entity)
-            }
-          }
-        });
-      } else {
-        // The lookup results returned is an array of lookup objects with the following format
-        cb(null, {
-          entity: entity,
-          data: {
-            summary: [`${malwarePresence.status} ${rlType.toUpperCase()}`],
-            details: {
-              data: body.rl,
-              a1000: _getA1000Link(options, entity)
-            }
-          }
-        });
+      if (malwarePresence.status === 'KNOWN' && options.ignoreKnownSamples) {
+        return cb(null, null);
       }
+
+      cb(null, {
+        entity: entity,
+        data: {
+          summary: [
+            `${malwarePresence.status} ${rlType.toUpperCase()}`,
+            `${malwarePresence.scanner_match} ${BUG_ICON}/ ${malwarePresence.scanner_count}`,
+            `Threat: ${SEVERITY_LEVELS[malwarePresence.threat_level]}`
+          ],
+          details: body.rl
+        }
+      });
     });
   });
 }
@@ -204,111 +202,110 @@ function onDetails(lookupObject, options, cb) {
 }
 
 function _handleRequestError(err, response, cb) {
-    if (err) {
-        cb(
-            _createJsonErrorPayload('HTTP Request Failed', null, '500', '2A', 'HTTP Error', {
-                response: response,
-                err: err
-            })
-        );
-        return;
-    }
+  if (err) {
+    cb(
+      _createJsonErrorPayload('HTTP Request Failed', null, '500', '2A', 'HTTP Error', {
+        err: err
+      })
+    );
+    return;
+  }
 
-    // don't consider this an error as we treat it as a cache miss
-    if (response.statusCode === 404) {
-        cb(null);
-        return;
-    }
-
-    if (response.statusCode === 401) {
-        cb(
-            _createJsonErrorPayload('Request requires user authentication', null, '401', '2A', 'Unauthorized', {
-                err: err
-            })
-        );
-        return;
-    }
-
-    if (response.statusCode === 400) {
-        cb(
-            _createJsonErrorPayload(
-                'Request could not be understood by the server due to malformed syntax',
-                null,
-                '400',
-                '2A',
-                'Bad Request',
-                {
-                    err: err
-                }
-            )
-        );
-        return;
-    }
-    if (response.statusCode === 403) {
-        cb(
-            _createJsonErrorPayload(
-                'The server understood the request, but is refusing to fulfill it',
-                null,
-                '403',
-                '2A',
-                'Forbidden',
-                {
-                    err: err
-                }
-            )
-        );
-        return;
-    }
-
-    if (response.statusCode === 500) {
-        cb(
-            _createJsonErrorPayload(
-                'Server encountered an unexpected condition which prevented it from fulfilling the request',
-                null,
-                '500',
-                '2A',
-                'Internal Server Error',
-                {
-                    err: err
-                }
-            )
-        );
-        return;
-    }
-
-    if (response.statusCode === 503) {
-        cb(
-            _createJsonErrorPayload(
-                'Server is currently unable to handle the request due to a temporary overloading or maintenance of the server',
-                null,
-                '503',
-                '2A',
-                'Service Unavailable ',
-                {
-                    err: err
-                }
-            )
-        );
-        return;
-    }
-
-    if (response.statusCode !== 200) {
-        cb(
-            _createJsonErrorPayload(
-                'The integration received an unexpected non-200 HTTP status code',
-                null,
-                response.statusCode.toString(),
-                '2A',
-                'Unexpected Non-200 HTTP Code',
-                {
-                    err: err
-                }
-            )
-        );
-        return;
-    }
-
+  // don't consider this an error as we treat it as a cache miss
+  if (response.statusCode === 404) {
     cb(null);
+    return;
+  }
+
+  if (response.statusCode === 401) {
+    cb(
+      _createJsonErrorPayload('Request requires user authentication', null, '401', '2A', 'Unauthorized', {
+        err: err
+      })
+    );
+    return;
+  }
+
+  if (response.statusCode === 400) {
+    cb(
+      _createJsonErrorPayload(
+        'Request could not be understood by the server due to malformed syntax',
+        null,
+        '400',
+        '2A',
+        'Bad Request',
+        {
+          err: err
+        }
+      )
+    );
+    return;
+  }
+  if (response.statusCode === 403) {
+    cb(
+      _createJsonErrorPayload(
+        'The server understood the request, but is refusing to fulfill it',
+        null,
+        '403',
+        '2A',
+        'Forbidden',
+        {
+          err: err
+        }
+      )
+    );
+    return;
+  }
+
+  if (response.statusCode === 500) {
+    cb(
+      _createJsonErrorPayload(
+        'Server encountered an unexpected condition which prevented it from fulfilling the request',
+        null,
+        '500',
+        '2A',
+        'Internal Server Error',
+        {
+          err: err
+        }
+      )
+    );
+    return;
+  }
+
+  if (response.statusCode === 503) {
+    cb(
+      _createJsonErrorPayload(
+        'Server is currently unable to handle the request due to a temporary overloading or maintenance of the server',
+        null,
+        '503',
+        '2A',
+        'Service Unavailable ',
+        {
+          err: err
+        }
+      )
+    );
+    return;
+  }
+
+  if (response.statusCode !== 200) {
+    cb(
+      _createJsonErrorPayload(
+        'The integration received an unexpected non-200 HTTP status code',
+        null,
+        response.statusCode.toString(),
+        '2A',
+        'Unexpected Non-200 HTTP Code',
+        {
+          err: err
+        }
+      )
+    );
+    return;
+  }
+
+  cb(null);
 }
 
 function validateOptions(userOptions, cb) {

@@ -136,15 +136,6 @@ function _lookupEntity(entity, rlType, options, cb) {
               `${malwarePresence.scanner_match} ${BUG_ICON}/ ${malwarePresence.scanner_count}`
             ],
             details: {
-              threat: `${malwarePresence.threat_level}/${malwarePresence.trust_factor} ${
-                malwarePresence.classification.platform
-              }.${malwarePresence.classification.type}.${malwarePresence.classification.family_name}`,
-              threats:
-                malwarePresence.classification.platform +
-                '.' +
-                malwarePresence.classification.type +
-                '.' +
-                malwarePresence.classification.family_name,
               data: body.rl,
               a1000: _getA1000Link(options, entity)
             }

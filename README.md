@@ -4,9 +4,7 @@ Polarity's ReversingLabs integration gives users access to automated MD5, SHA1, 
 
 ReversingLabs is a world leader in file reputation and analysis with over 8 billion files analyzed to date. To get more information on ReversingLabs, please visit https://www.reversinglabs.com
 
-| ![rl_1](https://user-images.githubusercontent.com/22529325/29779502-bfab2678-8be0-11e7-9821-70d3d212c0c6.png) | ![rl_2](https://user-images.githubusercontent.com/22529325/29779529-d6cf7d72-8be0-11e7-87d1-f3dfb457f98f.png) |
-|---|---|
-|*ReversingLabs details of an MD5 Hash* | *ReversingLabs scanner results of an MD5 Hash* |
+![bba82046-f872-4fad-b66f-7330ec7909bc](https://user-images.githubusercontent.com/306319/53984862-33f81f00-40e8-11e9-828a-fa47d44268e6.GIF)
 
 ## ReversingLabs Integration Options
 
@@ -21,6 +19,10 @@ ReversingLabs' TitaniumCloud API Username
 ### Password
 
 ReversingLabs' TitaniumCloud password
+
+### Ignore Known Samples
+
+If checked, the integration will only return results for samples that are marked as "Malicious" or "Suspicious". Samples marked as "Known" will be ignored.
 
 ### View data in A1000
 

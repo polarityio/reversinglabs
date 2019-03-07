@@ -1,34 +1,34 @@
 module.exports = {
-  name: "ReversingLabs",
-  acronym: "RL",
-  logging: { level: "info" },
-  entityTypes: ["hash"],
-  description: "ReversingLabs integration for real-time file hash lookups",
-  styles: ["./styles/reversinglabs.less"],
+  name: 'ReversingLabs',
+  acronym: 'RL',
+  logging: { level: 'info' },
+  entityTypes: ['md5', 'sha1', 'sha256'],
+  description: 'ReversingLabs integration for real-time file hash lookups',
+  styles: ['./styles/reversinglabs.less'],
   block: {
     component: {
-      file: "./component/reversinglabs.js"
+      file: './component/reversinglabs.js'
     },
     template: {
-      file: "./template/reversinglabs.hbs"
+      file: './template/reversinglabs.hbs'
     }
   },
   request: {
     // Provide the path to your certFile. Leave an empty string to ignore this option.
     // Relative paths are relative to the VT integration's root directory
-    cert: "",
+    cert: '',
     // Provide the path to your private key. Leave an empty string to ignore this option.
     // Relative paths are relative to the VT integration's root directory
-    key: "",
+    key: '',
     // Provide the key passphrase if required.  Leave an empty string to ignore this option.
     // Relative paths are relative to the VT integration's root directory
-    passphrase: "",
+    passphrase: '',
     // Provide the Certificate Authority. Leave an empty string to ignore this option.
     // Relative paths are relative to the VT integration's root directory
-    ca: "",
+    ca: '',
     // An HTTP proxy to be used. Supports proxy Auth with Basic Auth, identical to support for
     // the url parameter (by embedding the auth info in the uri)
-    proxy: "",
+    proxy: '',
     // If set to false, the integeration will ignore SSL errors.  This will allow the integration to connect
     // to the servers without valid SSL certificates.  Please note that we do NOT recommending setting this
     // to false in a production environment.
@@ -36,48 +36,48 @@ module.exports = {
   },
   options: [
     {
-      key: "url",
+      key: 'url',
       name: "ReversingLabs' TitaniumCloud Server URL",
-      description: "TitaniumCloud Server which should include the schema (i.e., https://) and port if required",
-      default: "",
-      type: "text",
+      description: 'TitaniumCloud Server which should include the schema (i.e., https://) and port if required',
+      default: '',
+      type: 'text',
       userCanEdit: false,
       adminOnly: true
     },
     {
-      key: "username",
-      name: "Username",
+      key: 'username',
+      name: 'Username',
       description: "ReversingLabs' TitaniumCloud API Username",
-      default: "",
-      type: "text",
+      default: '',
+      type: 'text',
       userCanEdit: false,
       adminOnly: false
     },
     {
-      key: "password",
-      name: "Password",
+      key: 'password',
+      name: 'Password',
       description: "ReversingLabs' TitaniumCloud password",
-      default: "",
-      type: "password",
+      default: '',
+      type: 'password',
       userCanEdit: false,
       adminOnly: false
     },
     {
-      key: "lookupA1000",
-      name: "View data in A1000",
+      key: 'lookupA1000',
+      name: 'View data in A1000',
       description:
-        "If checked, the integration will create a link that allows users to view information in their A1000 system",
+        'If checked, the integration will create a link that allows users to view information in their A1000 system',
       default: true,
-      type: "boolean",
+      type: 'boolean',
       userCanEdit: true,
       adminOnly: false
     },
     {
-      key: "a1000",
+      key: 'a1000',
       name: "ReversingLabs' A1000 Server URL",
-      description: "A1000 Server URL which should include the schema (i.e., https://) and port if required",
-      default: "",
-      type: "text",
+      description: 'A1000 Server URL which should include the schema (i.e., https://) and port if required',
+      default: '',
+      type: 'text',
       userCanEdit: false,
       adminOnly: true
     }

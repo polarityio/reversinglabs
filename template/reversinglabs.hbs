@@ -116,4 +116,16 @@
             {{/if}}
         </div>
     {{/if}}
+
+    {{#if block.data.details.isUriToHash}}
+        <h1 class="p-title">
+            <i class="fa fa-fw fa-server"></i> Associated Hashes
+        </h1>
+
+        <div class="tags">
+            {{#each block.data.details.sha1_list as |sha1|}}
+                <a class="p-link" href="https://{{block.data.details.url}}/search/?q=sha1%3A{{sha1}}&location=cloud">{{sha1}}</a>
+            {{/each}}
+        </div>
+    {{/if}}
 </div>

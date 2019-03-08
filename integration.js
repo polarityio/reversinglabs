@@ -42,13 +42,93 @@ function startup(logger) {
     requestWithDefaults = request.defaults(defaults);
 }
 
+function _lookupUriHashes(entityObjs, options, cb) {
+    log.trace('uri to hash lookup starting');
+
+    let results = [];
+
+    async.each(entityObjs, (entity, next) => {
+        log.trace('looking up entity ' + entity.value);
+
+        let ro = {
+            uri: 'https://' + options.url + '/api/uri_index/v1/query',
+            method: 'POST',
+            auth: {
+                user: options.username,
+                pass: options.password
+            },
+            body: {
+                rl: {
+                    query: {
+                        uri: entity.value
+                    }
+                }
+            },
+            json: true
+        }
+
+        requestWithDefaults(ro, function (err, response, body) {
+            log.trace('done looking up entity ' + entity.value);
+
+            _handleRequestError(err, response, function (err) {
+                if (err) {
+                    log.trace('error looking up entity ' + entity.value);
+                    next(err);
+                    return;
+                }
+
+                if (!body) {
+                    log.trace('no results looking up entity ' + entity.value);
+                    results.push({
+                        entity: entity,
+                        data: null
+                    });
+                    next();
+                    return
+                }
+
+                log.trace('got result looking up entity ' + entity.value);
+
+                let details = {
+                    sha1_list: body.rl.uri_index.sha1_list.slice(0, 10),
+                    url: options.a1000,
+                    isUriToHash: true
+                }
+
+                results.push({
+                    entity: entity,
+                    data: {
+                        summary: [],
+                        details: details
+                    }
+                });
+                next();
+            });
+        });
+    }, err => {
+        if (err) {
+            cb(err);
+            return;
+        }
+
+        log.trace('sending uri hash lookup results', results);
+
+        cb(null, results);
+    });
+}
+
+function isUri(entity) {
+    return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail
+}
+
 function doLookup(entities, options, cb) {
     log.debug({
         entities: entities.map(entity => {
             return entity.value;
         })
     }, 'doLookup Entity Values');
-    log.trace({entities: entities}, "doLookup Entity Objects");
+    log.trace({ entities: entities }, "doLookup Entity Objects");
+    log.trace('options', options);
 
     let sha256Elements = [];
     let md5Elements = [];
@@ -56,6 +136,8 @@ function doLookup(entities, options, cb) {
     let lookupResultsSha1 = [];
     let lookupResultsSha256 = [];
     let lookupResultsMd = [];
+    let lookupResultsHashes = [];
+    let uriElements = [];
 
     for (let i = 0; i < entities.length; i++) {
         let entityObj = entities[i];
@@ -66,6 +148,8 @@ function doLookup(entities, options, cb) {
             sha1Elements.push(entityObj);
         } else if (entityObj.isMD5 && options.lookupMd5) {
             md5Elements.push(entityObj);
+        } else if (isUri(entityObj)) {
+            uriElements.push(entityObj);
         }
     }
 
@@ -123,8 +207,17 @@ function doLookup(entities, options, cb) {
                 }
                 done(null, results);
             });
-        }
+        },
+        uriToHashes: function (done) {
+            _lookupUriHashes(uriElements, options, function (err, results) {
+                if (err) {
+                    done(err);
+                    return;
+                }
 
+                done(null, results);
+            });
+        }
     }, function (err, results) {
         if (err) {
             cb(err);
@@ -147,10 +240,13 @@ function doLookup(entities, options, cb) {
                 }),
                 sha256xref: results.sha256xref.map(result => {
                     return result.entity.value;
+                }),
+                uriToHashes: results.uriToHashes.map(result => {
+                    return result.entity.value;
                 })
             }, 'Lookup Result Summary (Entities with Results)');
 
-            log.trace({results: results}, "Lookup Results:");
+            log.trace({ results: results }, "Lookup Results:");
 
             results.sha1.forEach(function (result) {
                 lookupResultsSha1.push(result);
@@ -170,10 +266,16 @@ function doLookup(entities, options, cb) {
             results.sha256xref.forEach(function (result) {
                 lookupResultsSha256.push(result);
             });
+            results.uriToHashes.forEach(function (result) {
+                lookupResultsHashes.push(result);
+            });
+
+            //uriToHashes
 
             let totalResultsSha1 = _.reduce(lookupResultsSha1, _reduceResults, {});
-            let totalResultsSha256 = _.reduce(lookupResultsSha256,_reduceResults, {});
+            let totalResultsSha256 = _.reduce(lookupResultsSha256, _reduceResults, {});
             let totalResultsMd = _.reduce(lookupResultsMd, _reduceResults, {});
+            let totalResultHashes = _.reduce(lookupResultsHashes, _reduceResults, {});
 
             let finalTotalLookupResults = [];
 
@@ -189,14 +291,18 @@ function doLookup(entities, options, cb) {
                 finalTotalLookupResults.push(totalResultsMd[key]);
             });
 
-            log.trace({LookupResults: finalTotalLookupResults}, "Final Lookup Results");
+            _.forEach(_.keys(totalResultHashes), function (key) {
+                finalTotalLookupResults.push(totalResultHashes[key]);
+            });
+
+            log.trace({ LookupResults: finalTotalLookupResults }, "Final Lookup Results");
 
             cb(null, finalTotalLookupResults);
         }
     });
 }
 
-function _reduceResults(reduced, entityResult){
+function _reduceResults(reduced, entityResult) {
     if (!entityResult) {
         return reduced;
     }
@@ -206,7 +312,7 @@ function _reduceResults(reduced, entityResult){
     if (_.isNil(reduced[entityValue]) || _.isNil(reduced[entityValue].data)) {
         // set the initial value for this entity if we don't have a value already or the value was a miss
         reduced[entityValue] = entityResult;
-    } else if(!_.isNil(entityResult.data)){
+    } else if (!_.isNil(entityResult.data)) {
         reduced[entityValue].data.summary = _.concat(reduced[entityValue].data.summary,
             Array.isArray(entityResult.data.summary) ? entityResult.data.summary : []);
         _.merge(reduced[entityValue].data.details, entityResult.data.details);
@@ -284,7 +390,7 @@ function _lookupEntitySHA1Xref(sha1XrefEntities, options, cb) {
     async.each(sha1XrefEntities, (entity, done) => {
         let uri = 'https://' + options.url + '/api/xref/v2/query/sha1/' + entity.value + '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 XRef Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'SHA1 XRef Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -311,7 +417,7 @@ function _lookupEntitySHA1Xref(sha1XrefEntities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "SHA1 Xref Response Body Results");
+                log.trace({ body: body }, "SHA1 Xref Response Body Results");
 
                 // The lookup results returned is an array of lookup objects with the following format
                 lookupResults.push({
@@ -351,7 +457,7 @@ function _lookupEntitySHA1(sha1Entities, options, cb) {
         let uri = 'https://' + options.url + '/api/databrowser/malware_presence/query/sha1/' + entity.value +
             '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'SHA1 Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -377,7 +483,7 @@ function _lookupEntitySHA1(sha1Entities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "SHA1 Response Body Results");
+                log.trace({ body: body }, "SHA1 Response Body Results");
 
                 // The lookup results returned is an array of lookup objects with the following format
                 if (body.rl.malware_presence.status === "MALICIOUS") {
@@ -440,7 +546,7 @@ function _lookupEntitySha256Xref(sha256Entities, options, cb) {
     async.each(sha256Entities, (entity, done) => {
         let uri = 'https://' + options.url + '/api/xref/v2/query/sha256/' + entity.value + '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'SHA1 Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'SHA1 Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -466,7 +572,7 @@ function _lookupEntitySha256Xref(sha256Entities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "SHA256 Xref Results Body");
+                log.trace({ body: body }, "SHA256 Xref Results Body");
 
                 lookupResults.push({
                     entity: entity,
@@ -505,7 +611,7 @@ function _lookupEntityMD5Xref(md5Entities, options, cb) {
     async.each(md5Entities, (entity, done) => {
         let uri = 'https://' + options.url + '/api/xref/v2/query/md5/' + entity.value + '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'MD5 Xref Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'MD5 Xref Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -531,7 +637,7 @@ function _lookupEntityMD5Xref(md5Entities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "MD5 Xref Response Body Results");
+                log.trace({ body: body }, "MD5 Xref Response Body Results");
 
                 lookupResults.push({
                     entity: entity,
@@ -569,7 +675,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
         let uri = 'https://ticloud-cdn-api.reversinglabs.com/api/databrowser/malware_presence/query/sha256/' +
             entity.value + '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'SHA 256 Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'SHA 256 Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -595,7 +701,7 @@ function _lookupEntitySha256(sha256Entities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "SHA256 Request Body Results");
+                log.trace({ body: body }, "SHA256 Request Body Results");
 
                 if (body.rl.malware_presence.status === "MALICIOUS") {
                     lookupResults.push({
@@ -653,7 +759,7 @@ function _lookupEntityMD5(md5Entities, options, cb) {
         let uri = 'https://' + options.url + '/api/databrowser/malware_presence/query/md5/' +
             entity.value + '?extended=true&format=json';
 
-        log.debug({entity: entity.value, uri: uri}, 'MD5 Request Info');
+        log.debug({ entity: entity.value, uri: uri }, 'MD5 Request Info');
 
         requestWithDefaults({
             uri: uri,
@@ -679,7 +785,7 @@ function _lookupEntityMD5(md5Entities, options, cb) {
                     return;
                 }
 
-                log.trace({body: body}, "MD5 Response Body Results");
+                log.trace({ body: body }, "MD5 Response Body Results");
 
                 if (body.rl.malware_presence.status === "MALICIOUS") {
                     lookupResults.push({
@@ -758,9 +864,9 @@ var _createJsonErrorPayload = function (msg, pointer, httpCode, code, title, met
         _createJsonErrorObject(msg, pointer, httpCode, code, title, meta)
     ];
 
-    log.error({errors: errors});
+    log.error({ errors: errors });
 
-    return {errors: errors};
+    return { errors: errors };
 };
 
 // function that creates the Json object to be passed to the payload

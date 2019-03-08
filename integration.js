@@ -64,6 +64,85 @@ function _getReversingLabsType(entity) {
   }
 }
 
+function isUri(entity) {
+  return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail
+}
+
+function _lookupUriHashes(entityObjs, options, cb) {
+  log.trace('uri to hash lookup starting');
+
+  let results = [];
+
+  async.each(entityObjs, (entity, next) => {
+      log.trace('looking up entity ' + entity.value);
+
+      let ro = {
+          uri: 'https://' + options.url + '/api/uri_index/v1/query',
+          method: 'POST',
+          auth: {
+              user: options.username,
+              pass: options.password
+          },
+          body: {
+              rl: {
+                  query: {
+                      uri: entity.value
+                  }
+              }
+          },
+          json: true
+      }
+
+      requestWithDefaults(ro, function (err, response, body) {
+          log.trace('done looking up entity ' + entity.value);
+
+          _handleRequestError(err, response, function (err) {
+              if (err) {
+                  log.trace('error looking up entity ' + entity.value);
+                  next(err);
+                  return;
+              }
+
+              if (!body) {
+                  log.trace('no results looking up entity ' + entity.value);
+                  results.push({
+                      entity: entity,
+                      data: null
+                  });
+                  next();
+                  return
+              }
+
+              log.trace('got result looking up entity ' + entity.value);
+
+              let details = {
+                  sha1_list: body.rl.uri_index.sha1_list.slice(0, 10),
+                  url: options.a1000,
+                  isUriToHash: true
+              }
+
+              results.push({
+                  entity: entity,
+                  data: {
+                      summary: [],
+                      details: details
+                  }
+              });
+              next();
+          });
+      });
+  }, err => {
+      if (err) {
+          cb(err);
+          return;
+      }
+
+      log.trace('sending uri hash lookup results', results);
+
+      cb(null, results);
+  });
+}
+
 function doLookup(entities, options, cb) {
   let lookupResults = [];
   async.each(

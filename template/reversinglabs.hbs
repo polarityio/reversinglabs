@@ -4,9 +4,11 @@
             class="fa fa-external-link p-grey"></i>
     {{/if}}
 
+    {{#unless block.data.details.isUriToHash}}
     <h1 class="p-title">
         <i class="fa fa-fw fa-file"></i> File Reputation
     </h1>
+    {{/unless}}
     {{#if block.data.details.datas.malware_presence.status}}
         <div>
             <span class="p-key">Status:</span>

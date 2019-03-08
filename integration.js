@@ -7,6 +7,7 @@ let async = require('async');
 let log = null;
 let fs = require('fs');
 let config = require('./config/config');
+let crypto = require('crypto');
 
 const HASH_ICON = '<i class="fa fa-bug"></i>';
 let requestWithDefaults;
@@ -50,7 +51,7 @@ function _lookupUriHashes(entityObjs, options, cb) {
     async.each(entityObjs, (entity, next) => {
         log.trace('looking up entity ' + entity.value);
 
-        let ro = {
+        let roHashes = {
             uri: 'https://' + options.url + '/api/uri_index/v1/query',
             method: 'POST',
             auth: {
@@ -65,45 +66,93 @@ function _lookupUriHashes(entityObjs, options, cb) {
                 }
             },
             json: true
-        }
+        };
 
-        requestWithDefaults(ro, function (err, response, body) {
-            log.trace('done looking up entity ' + entity.value);
+        let shasum = crypto.createHash('sha1');
+        shasum.update(entity.value);
+        let hashedUri = shasum.digest('hex');
 
-            _handleRequestError(err, response, function (err) {
-                if (err) {
-                    log.trace('error looking up entity ' + entity.value);
-                    next(err);
-                    return;
-                }
+        log.trace('hashed uri', hashedUri);
 
-                if (!body) {
-                    log.trace('no results looking up entity ' + entity.value);
-                    results.push({
-                        entity: entity,
-                        data: null
+        let roStats = {
+            uri: 'https://' + options.url + '/api/uri/statistics/uri_state/sha1/' + hashedUri,
+            method: 'GET',
+            qs: {
+                format: 'json'
+            },
+            auth: {
+                user: options.username,
+                pass: options.password
+            },
+            json: true
+        };
+
+        async.parallel({
+            hashes: (done) => {
+                requestWithDefaults(roHashes, function (err, response, body) {
+                    log.trace('done looking up entity hashes ' + entity.value);
+
+                    _handleRequestError(err, response, function (err) {
+                        if (err) {
+                            log.trace('error looking up entity ' + entity.value);
+                            done(err);
+                            return;
+                        }
+
+                        done(null, body);
                     });
-                    next();
-                    return
-                }
+                });
+            },
+            stats: (done) => {
+                requestWithDefaults(roStats, function (err, response, body) {
+                    log.trace('done looking up entity stats ' + entity.value);
 
-                log.trace('got result looking up entity ' + entity.value);
+                    _handleRequestError(err, response, function (err) {
+                        if (err) {
+                            log.trace('error looking up entity ' + entity.value);
+                            done(err);
+                            return;
+                        }
 
-                let details = {
-                    sha1_list: body.rl.uri_index.sha1_list.slice(0, 10),
-                    url: options.a1000,
-                    isUriToHash: true
-                }
+                        done(null, body);
+                    });
+                });
+            }
+        }, (err, uri) => {
+            if (err) {
+                next(err);
+                return;
+            }
 
+            if (!uri.hashes || !uri.hashes.rl || !uri.stats || !uri.stats.rl) {
+                log.trace('no results looking up entity ' + entity.value);
                 results.push({
                     entity: entity,
-                    data: {
-                        summary: [],
-                        details: details
-                    }
+                    data: null
                 });
                 next();
+                return
+            }
+
+            let details = {
+                sha1_list: uri.hashes.rl.uri_index.sha1_list.slice(0, options.numHashes),
+                url: options.a1000,
+                isUriToHash: true
+            };
+
+            let stats = uri.stats.rl.uri_state.counters;
+            let malicous = 'Malicous: ' + (stats.malicous ? stats.malicous : 0);
+            let known = 'Known: ' + (stats.known ? stats.known : 0);
+            let suspecious = 'Suspecious: ' + (stats.suspecious ? stats.suspecious : 0);
+
+            results.push({
+                entity: entity,
+                data: {
+                    summary: [malicous, known, suspecious],
+                    details: details
+                }
             });
+            next();
         });
     }, err => {
         if (err) {
@@ -328,6 +377,8 @@ function _handleRequestError(err, response, cb) {
         }));
         return;
     }
+
+    log.trace('response status code', response.statusCode);
 
     // don't consider this an error as we treat it as a cache miss
     if (response.statusCode === 404) {

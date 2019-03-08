@@ -90,6 +90,15 @@ module.exports = {
       type: 'text',
       userCanEdit: false,
       adminOnly: true
+    },
+    {
+        key: 'numHashes',
+        name: 'Associated hashes for all other Entity Types',
+        description: 'Number of associated hashes to return for all other entity types.',
+        default: 10,
+        type: 'number',
+        userCanEdit: true,
+        adminOnly: false
     }
   ]
 };

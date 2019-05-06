@@ -1,17 +1,23 @@
 {{#if block.userOptions.lookupA1000}}
     <a class="p-link" href="{{block.userOptions.a1000}}/?q={{block.entity.value}}">View in ReversingLabs A1000 {{fa-icon "external-link-square" class="external-link-icon"}}</a>
 {{/if}}
-
+-
+{{#if isNotUri}}
 <h1 class="p-title">
     {{fa-icon "file" fixedWidth=true}} File Reputation
 </h1>
+{{/if}}
+
+{{#if malwarePresence}}
 {{#if malwarePresence.status}}
     <div>
         <span class="p-key">Status:</span>
         <span class="p-value">{{malwarePresence.status}}</span>
     </div>
 {{/if}}
+{{/if}}
 
+{{#if isNotUri}}
 <div>
     <span class="p-key">Threat Level:</span>
     <span class="p-value">
@@ -25,6 +31,7 @@
         &nbsp;{{threatLevelHuman}} ({{malwarePresence.threat_level}} / 5)
     </span>
 </div>
+{{/if}}
 
 {{#if malwarePresence}}
     <div>
@@ -35,8 +42,7 @@
         <span class="p-key">AV Detection Count:</span>
         <span class="p-value">{{malwarePresence.scanner_match}} of {{malwarePresence.scanner_count}} Detections</span>
     </div>
-{{/if}}
-{{# if malwarePresence.first_seen}}
+{{#if malwarePresence.first_seen}}
     <div>
         <span class="p-key">First Seen:</span>
         <span class="p-value">
@@ -82,6 +88,7 @@
             <span class="p-value">{{malwarePresence.classification.family_name}}</span>
         </div>
     {{/if}}
+{{/if}}
 {{/if}}
 
 {{#if details.scanned_on}}
@@ -149,12 +156,46 @@
 {{/if}}
 
 {{#if block.data.details.isUriToHash}}
+    {{#if block.data.details.hasStats}}
+        <!-- URI Stats -->
+        <h1 class="p-title">
+            <i class="fa fa-fw fa-server"></i> URI Stats
+        </h1>
+        <div>
+            <span class="p-key">SHA1</span>
+            <span class="p-value">{{block.data.details.stats.sha1}}</span>
+        </div>
+        <div>
+            <span class="p-key">URI Type</span>
+            <span class="p-value">{{block.data.details.stats.uri_type}}</span>
+        </div>
+        
+        <!-- Counters -->
+        <h1 class="p-title">
+            <i class="fa fa-fw fa-server"></i> Associated Samples
+        </h1>
+        <div>
+            <span class="p-key">Known</span>
+            <span class="p-value">{{block.data.details.stats.counters.known}}</span>
+        </div>
+        <div>
+            <span class="p-key">Malicous</span>
+            <span class="p-value">{{block.data.details.stats.counters.malicious}}</span>
+        </div>
+        <div>
+            <span class="p-key">Suspicious</span>
+            <span class="p-value">{{block.data.details.stats.counters.suspicious}}</span>
+        </div>
+    {{/if}}
+
+
+    <!-- Hashes -->
     <h1 class="p-title">
         <i class="fa fa-fw fa-server"></i> Associated Hashes
     </h1>
     <div class="tags">
         {{#each block.data.details.sha1_list as |sha1|}}
-            <a class="p-link" href="https://{{block.data.details.url}}/search/?q=sha1%3A{{sha1}}&location=cloud">{{sha1}}</a>
+            <a class="p-link" href="{{block.data.details.url}}/search/?q=sha1%3A{{sha1}}&location=cloud">{{sha1}}</a>
         {{/each}}
     </div>
 {{/if}}

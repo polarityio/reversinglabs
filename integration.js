@@ -4,6 +4,7 @@ const request = require('request');
 const async = require('async');
 const fs = require('fs');
 const config = require('./config/config');
+const crypto = require('crypto');
 
 const SEVERITY_LEVELS = {
   0: 'none',
@@ -68,78 +69,61 @@ function isUri(entity) {
   return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail
 }
 
-function _lookupUriHashes(entityObjs, options, cb) {
-  log.trace('uri to hash lookup starting');
+function _lookupUriHashes(entity, options, cb) {
+  log.trace('looking up entity ' + entity.value);
 
-  let results = [];
-
-  async.each(entityObjs, (entity, next) => {
-      log.trace('looking up entity ' + entity.value);
-
-      let ro = {
-          uri: 'https://' + options.url + '/api/uri_index/v1/query',
-          method: 'POST',
-          auth: {
-              user: options.username,
-              pass: options.password
-          },
-          body: {
-              rl: {
-                  query: {
-                      uri: entity.value
-                  }
-              }
-          },
-          json: true
+  let ro = {
+    uri: options.url + '/api/uri_index/v1/query',
+    method: 'POST',
+    auth: {
+      user: options.username,
+      pass: options.password
+    },
+    body: {
+      rl: {
+        query: {
+          uri: entity.value
+        }
       }
+    },
+    json: true
+  }
 
-      requestWithDefaults(ro, function (err, response, body) {
-          log.trace('done looking up entity ' + entity.value);
+  requestWithDefaults(ro, function (err, response, body) {
+    log.trace('done looking up entity ' + entity.value);
 
-          _handleRequestError(err, response, function (err) {
-              if (err) {
-                  log.trace('error looking up entity ' + entity.value);
-                  next(err);
-                  return;
-              }
-
-              if (!body) {
-                  log.trace('no results looking up entity ' + entity.value);
-                  results.push({
-                      entity: entity,
-                      data: null
-                  });
-                  next();
-                  return
-              }
-
-              log.trace('got result looking up entity ' + entity.value);
-
-              let details = {
-                  sha1_list: body.rl.uri_index.sha1_list.slice(0, 10),
-                  url: options.a1000,
-                  isUriToHash: true
-              }
-
-              results.push({
-                  entity: entity,
-                  data: {
-                      summary: [],
-                      details: details
-                  }
-              });
-              next();
-          });
-      });
-  }, err => {
+    _handleRequestError(err, response, function (err) {
       if (err) {
-          cb(err);
-          return;
+        log.trace('error looking up entity ' + entity.value);
+        cb(err);
+        return;
       }
 
-      log.trace('sending uri hash lookup results', results);
+      if (!body) {
+        log.trace('no results looking up entity ' + entity.value);
+        cb(null, {
+          entity: entity,
+          data: null
+        });
+        return
+      }
 
-      cb(null, results);
+      log.trace('got result looking up entity ' + entity.value);
+
+      let details = {
+        sha1_list: body.rl.uri_index.sha1_list.slice(0, options.numHashes),
+        url: options.a1000,
+        isUriToHash: true
+      }
+
+      cb(null, {
+        entity: entity,
+        data: {
+          summary: [],
+          details: details
+        }
+      });
+    });
   });
 }
 
@@ -148,19 +132,31 @@ function doLookup(entities, options, cb) {
   async.each(
     entities,
     (entity, next) => {
-      let rlType = _getReversingLabsType(entity);
-      _lookupEntity(entity, rlType, options, function(err, result) {
-        if (err) {
-          return next(err);
-        }
+      if (isUri(entity)) {
+        _lookupUriHashes(entity, options, function (err, result) {
+          if (err) {
+            next(err);
+            return;
+          }
 
-        // null results are ignored as they have been filtered out based on user options
-        if (result !== null) {
           lookupResults.push(result);
-        }
+          next();
+        });
+      } else {
+        let rlType = _getReversingLabsType(entity);
+        _lookupEntity(entity, rlType, options, function (err, result) {
+          if (err) {
+            return next(err);
+          }
 
-        next();
-      });
+          // null results are ignored as they have been filtered out based on user options
+          if (result !== null) {
+            lookupResults.push(result);
+          }
+
+          next();
+        });
+      }
     },
     (err) => {
       cb(err, lookupResults);
@@ -170,6 +166,7 @@ function doLookup(entities, options, cb) {
 
 function _getEntitySearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    log.error(entity);
     throw new Error('invalid entity type provided to _getEntitySearchUrl');
   }
 
@@ -178,6 +175,7 @@ function _getEntitySearchUrl(rlType, entity, options) {
 
 function _getEntityXRefSearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    log.error(entity);
     throw new Error('invalid entity type provided to _getEntityXRefSearchUrl');
   }
 
@@ -195,8 +193,8 @@ function _lookupEntity(entity, rlType, options, cb) {
     json: true
   };
 
-  requestWithDefaults(requestOptions, function(err, response, body) {
-    _handleRequestError(err, response, function(jsonApiError) {
+  requestWithDefaults(requestOptions, function (err, response, body) {
+    _handleRequestError(err, response, function (jsonApiError) {
       if (jsonApiError) {
         cb(jsonApiError);
         return;
@@ -246,8 +244,8 @@ function _lookupEntityXref(entityObj, type, options, cb) {
     json: true
   };
 
-  requestWithDefaults(requestOptions, function(err, response, body) {
-    _handleRequestError(err, response, function(jsonApiError) {
+  requestWithDefaults(requestOptions, function (err, response, body) {
+    _handleRequestError(err, response, function (jsonApiError) {
       if (jsonApiError) {
         return cb(jsonApiError);
       }
@@ -263,6 +261,42 @@ function _lookupEntityXref(entityObj, type, options, cb) {
 
 function onDetails(lookupObject, options, cb) {
   let rlType = _getReversingLabsType(lookupObject.entity);
+
+  if (isUri(lookupObject.entity)) {
+    let shasum = crypto.createHash('sha1');
+    shasum.update(lookupObject.entity.value);
+    let sha1 = shasum.digest('hex');
+
+    log.trace(`looking up stats for uri ${lookupObject.entity.value} with sha ${sha1}`);
+
+    let ro = {
+      uri: `${options.url}/api/uri/statistics/uri_state/sha1/${sha1}?format=json`,
+      method: 'GET',
+      auth: {
+        user: options.username,
+        pass: options.password
+      },
+      json: true
+    }
+
+    return requestWithDefaults(ro, function(err, resp, result) {
+      if (err || resp.statusCode !== 200) {
+        log.error(err || resp.statusCode);
+        return cb(err || resp.statusCode);
+      }
+
+      if (resp.statusCode === 404) {
+        log.trace(`entity ${lookupObject.entity.value} stast not found`);
+        return cb(null, lookupObject.data);
+      }
+
+      log.trace('got result', result);
+
+      lookupObject.data.details.hasStats = true;
+      lookupObject.data.details.stats = result.rl.uri_state;
+      cb(null, lookupObject.data);
+    });
+  }
 
   _lookupEntityXref(lookupObject.entity, rlType, options, (err, result) => {
     if (err) {

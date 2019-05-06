@@ -2,18 +2,19 @@
   "main": "./integration.js",
   "name": "ReversingLabs",
   "description": "ReversingLabs integrations",
-  "version": "3.0.0",
+  "version": "1.2.5-beta",
   "private": true,
   "dependencies": {
-    "request": "^2.88",
-    "async": "^2.6",
-    "lodash": "^4.17"
+    "request": "2.88.0",
+    "async": "2.6.1",
+    "lodash": "4.17.11"
   },
   "devDependencies": {
+    "bunyan": "^1.8.12",
     "chai": "~4.1",
     "mocha": "~5.2",
-    "node-watch": "^0.6.0",
     "node-ssh": "^5.1.1",
+    "node-watch": "^0.6.0",
     "scp2": "^0.5.0"
   },
   "scripts": {

@@ -101,28 +101,20 @@ function _lookupUriHashes(entity, options, cb) {
 
       if (!body) {
         log.trace('no results looking up entity ' + entity.value);
-        cb(null, {
-          entity: entity,
-          data: null
-        });
+        cb(null, null);
         return
       }
 
       log.trace('got result looking up entity ' + entity.value);
 
+      // Anything set on this details object must be copied explicitly in `onDetails`
       let details = {
         sha1_list: body.rl.uri_index.sha1_list.slice(0, options.numHashes),
         url: options.a1000,
         isUriToHash: true
-      }
+      };
 
-      cb(null, {
-        entity: entity,
-        data: {
-          summary: [],
-          details: details
-        }
-      });
+      cb(null, details);
     });
   });
 }
@@ -133,13 +125,31 @@ function doLookup(entities, options, cb) {
     entities,
     (entity, next) => {
       if (isUri(entity)) {
-        _lookupUriHashes(entity, options, function (err, result) {
+        lookupUriStats(entity, options, function(err, details) { 
           if (err) {
-            next(err);
-            return;
+            return next(err);
           }
 
-          lookupResults.push(result);
+          if (!details) {
+            lookupResults.push({
+              entity: entity,
+              data: null
+            });
+            return next();
+          }
+
+          let stats = details.rl.uri_state;
+
+          lookupResults.push({
+            entity: entity,
+            data: {
+              summary: [stats.uri_type],
+              details: {
+                hasStats: true,
+                stats: stats
+              }
+            }
+          });
           next();
         });
       } else {
@@ -259,41 +269,52 @@ function _lookupEntityXref(entityObj, type, options, cb) {
   });
 }
 
+function lookupUriStats(entity, options, cb) {
+  let shasum = crypto.createHash('sha1');
+  shasum.update(entity.value);
+  let sha1 = shasum.digest('hex');
+
+  log.trace(`looking up stats for uri ${entity.value} with sha ${sha1}`);
+
+  let ro = {
+    uri: `${options.url}/api/uri/statistics/uri_state/sha1/${sha1}?format=json`,
+    method: 'GET',
+    auth: {
+      user: options.username,
+      pass: options.password
+    },
+    json: true
+  }
+
+  requestWithDefaults(ro, function(err, resp, result) {
+    if (resp.statusCode == 404)  {
+      return cb(null, null);
+    }
+
+    if (err || resp.statusCode !== 200) {
+      log.error(err || resp.statusCode);
+      return cb(err || resp.statusCode);
+    }
+
+    log.trace('got result', result);
+
+    cb(null, result);
+  });
+}
+
 function onDetails(lookupObject, options, cb) {
   let rlType = _getReversingLabsType(lookupObject.entity);
 
   if (isUri(lookupObject.entity)) {
-    let shasum = crypto.createHash('sha1');
-    shasum.update(lookupObject.entity.value);
-    let sha1 = shasum.digest('hex');
-
-    log.trace(`looking up stats for uri ${lookupObject.entity.value} with sha ${sha1}`);
-
-    let ro = {
-      uri: `${options.url}/api/uri/statistics/uri_state/sha1/${sha1}?format=json`,
-      method: 'GET',
-      auth: {
-        user: options.username,
-        pass: options.password
-      },
-      json: true
-    }
-
-    return requestWithDefaults(ro, function(err, resp, result) {
-      if (err || resp.statusCode !== 200) {
-        log.error(err || resp.statusCode);
-        return cb(err || resp.statusCode);
+    return _lookupUriHashes(lookupObject.entity, options, function(err, result) {
+      if (err) {
+        return cb(err);
       }
 
-      if (resp.statusCode === 404) {
-        log.trace(`entity ${lookupObject.entity.value} stast not found`);
-        return cb(null, lookupObject.data);
-      }
-
-      log.trace('got result', result);
-
-      lookupObject.data.details.hasStats = true;
-      lookupObject.data.details.stats = result.rl.uri_state;
+      lookupObject.data.details.sha1_list = result.sha1_list;
+      lookupObject.data.details.url = result.url;
+      lookupObject.data.details.isUriToHash = result.isUriToHash;
+      
       cb(null, lookupObject.data);
     });
   }

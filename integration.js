@@ -143,7 +143,13 @@ function doLookup(entities, options, cb) {
           lookupResults.push({
             entity: entity,
             data: {
-              summary: [stats.uri_type],
+              summary: [
+                stats.uri_type, 
+                stats.counters.known ? `Known: ${stats.counters.known}` : null,
+                stats.counters.malicious ? `Malicious: ${stats.counters.malicious}` : null,
+                stats.counters.suspicious ? `Suspicious: ${stats.counters.suspicious}` : null
+              ]
+              .filter((entry) => !!entry),
               details: {
                 hasStats: true,
                 stats: stats

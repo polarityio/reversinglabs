@@ -2,7 +2,7 @@ module.exports = {
   name: 'ReversingLabs',
   acronym: 'RL',
   logging: { level: 'info' },
-  entityTypes: ['md5', 'sha1', 'sha256'],
+  entityTypes: ['md5', 'sha1', 'sha256', 'email', 'domain', 'url', 'ipv4'],
   description: 'ReversingLabs integration for real-time file hash lookups',
   styles: ['./styles/reversinglabs.less'],
   block: {
@@ -90,6 +90,15 @@ module.exports = {
       type: 'text',
       userCanEdit: false,
       adminOnly: true
+    },
+    {
+        key: 'numHashes',
+        name: 'Associated hashes for all other Entity Types',
+        description: 'Number of associated hashes to return for all other entity types.',
+        default: 10,
+        type: 'number',
+        userCanEdit: true,
+        adminOnly: false
     }
   ]
 };

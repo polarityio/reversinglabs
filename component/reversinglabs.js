@@ -8,7 +8,7 @@ polarity.export = PolarityComponent.extend({
   }),
   isNotUri: Ember.computed('details', function() {
     let entity = this.get('block.entity');
-    return !(entity.isURL || entity.isIP || entity.isDomain || entity.isEmail)
+    return !(entity.isURL || entity.isIP || entity.isDomain || entity.isEmail);
   }),
   isShowingScannerDetails: false,
   statusClass: Ember.computed('malwarePresence.status', function() {

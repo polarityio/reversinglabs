@@ -66,7 +66,7 @@ function _getReversingLabsType(entity) {
 }
 
 function isUri(entity) {
-  return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail
+  return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail;
 }
 
 function _lookupUriHashes(entity, options, cb) {
@@ -87,12 +87,12 @@ function _lookupUriHashes(entity, options, cb) {
       }
     },
     json: true
-  }
+  };
 
-  requestWithDefaults(ro, function (err, response, body) {
+  requestWithDefaults(ro, function(err, response, body) {
     log.trace('done looking up entity ' + entity.value);
 
-    _handleRequestError(err, response, function (err) {
+    _handleRequestError(err, response, function(err) {
       if (err) {
         log.trace('error looking up entity ' + entity.value);
         cb(err);
@@ -102,7 +102,7 @@ function _lookupUriHashes(entity, options, cb) {
       if (!body) {
         log.trace('no results looking up entity ' + entity.value);
         cb(null, null);
-        return
+        return;
       }
 
       log.trace('got result looking up entity ' + entity.value);
@@ -125,7 +125,7 @@ function doLookup(entities, options, cb) {
     entities,
     (entity, next) => {
       if (isUri(entity)) {
-        lookupUriStats(entity, options, function(err, details) { 
+        lookupUriStats(entity, options, function(err, details) {
           if (err) {
             return next(err);
           }
@@ -144,12 +144,11 @@ function doLookup(entities, options, cb) {
             entity: entity,
             data: {
               summary: [
-                stats.uri_type, 
+                stats.uri_type,
                 stats.counters.known ? `Known: ${stats.counters.known}` : null,
                 stats.counters.malicious ? `Malicious: ${stats.counters.malicious}` : null,
                 stats.counters.suspicious ? `Suspicious: ${stats.counters.suspicious}` : null
-              ]
-              .filter((entry) => !!entry),
+              ].filter((entry) => !!entry),
               details: {
                 hasStats: true,
                 stats: stats
@@ -160,7 +159,7 @@ function doLookup(entities, options, cb) {
         });
       } else {
         let rlType = _getReversingLabsType(entity);
-        _lookupEntity(entity, rlType, options, function (err, result) {
+        _lookupEntity(entity, rlType, options, function(err, result) {
           if (err) {
             return next(err);
           }
@@ -209,8 +208,8 @@ function _lookupEntity(entity, rlType, options, cb) {
     json: true
   };
 
-  requestWithDefaults(requestOptions, function (err, response, body) {
-    _handleRequestError(err, response, function (jsonApiError) {
+  requestWithDefaults(requestOptions, function(err, response, body) {
+    _handleRequestError(err, response, function(jsonApiError) {
       if (jsonApiError) {
         cb(jsonApiError);
         return;
@@ -260,8 +259,8 @@ function _lookupEntityXref(entityObj, type, options, cb) {
     json: true
   };
 
-  requestWithDefaults(requestOptions, function (err, response, body) {
-    _handleRequestError(err, response, function (jsonApiError) {
+  requestWithDefaults(requestOptions, function(err, response, body) {
+    _handleRequestError(err, response, function(jsonApiError) {
       if (jsonApiError) {
         return cb(jsonApiError);
       }
@@ -290,10 +289,11 @@ function lookupUriStats(entity, options, cb) {
       pass: options.password
     },
     json: true
-  }
+  };
 
   requestWithDefaults(ro, function(err, resp, result) {
-    if (resp.statusCode == 404)  {
+    if (resp.statusCode == 404) {
+      log.trace(`No Results for Entity ${entity.value}`);
       return cb(null, null);
     }
 
@@ -302,7 +302,7 @@ function lookupUriStats(entity, options, cb) {
       return cb(err || resp.statusCode);
     }
 
-    log.trace('got result', result);
+    log.trace(result, 'lookupUriStats');
 
     cb(null, result);
   });
@@ -320,7 +320,7 @@ function onDetails(lookupObject, options, cb) {
       lookupObject.data.details.sha1_list = result.sha1_list;
       lookupObject.data.details.url = result.url;
       lookupObject.data.details.isUriToHash = result.isUriToHash;
-      
+
       cb(null, lookupObject.data);
     });
   }

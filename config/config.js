@@ -2,7 +2,13 @@ module.exports = {
   name: 'ReversingLabs',
   acronym: 'RL',
   logging: { level: 'info' },
-  entityTypes: ['md5', 'sha1', 'sha256', 'email', 'domain', 'url', 'ipv4'],
+  entityTypes: ['hash'],
+  /**
+   * The ReversingLabs integration also supports lookups on email, domain, url and ipv4.  These lookups can be noisey
+   * however and are turned off by default.  If you would like to enable these lookups please add in the required
+   * entity types to the array above or comment out the line above and uncomment the line below.
+   */
+  //entityTypes: ['hash', 'email', 'domain', 'url', 'ipv4'],
   description: 'ReversingLabs integration for real-time file hash lookups',
   styles: ['./styles/reversinglabs.less'],
   block: {
@@ -92,13 +98,13 @@ module.exports = {
       adminOnly: true
     },
     {
-        key: 'numHashes',
-        name: 'Associated hashes for all other Entity Types',
-        description: 'Number of associated hashes to return for all other entity types.',
-        default: 10,
-        type: 'number',
-        userCanEdit: true,
-        adminOnly: false
+      key: 'numHashes',
+      name: 'Associated hashes for all other Entity Types',
+      description: 'Number of associated hashes to return for all other entity types.',
+      default: 10,
+      type: 'number',
+      userCanEdit: true,
+      adminOnly: false
     }
   ]
 };

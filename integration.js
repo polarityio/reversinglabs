@@ -4,6 +4,7 @@ const request = require('request');
 const async = require('async');
 const fs = require('fs');
 const config = require('./config/config');
+const crypto = require('crypto');
 
 const SEVERITY_LEVELS = {
   0: 'none',
@@ -64,24 +65,113 @@ function _getReversingLabsType(entity) {
   }
 }
 
+function isUri(entity) {
+  return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail;
+}
+
+function _lookupUriHashes(entity, options, cb) {
+  log.trace('looking up entity ' + entity.value);
+
+  let ro = {
+    uri: options.url + '/api/uri_index/v1/query',
+    method: 'POST',
+    auth: {
+      user: options.username,
+      pass: options.password
+    },
+    body: {
+      rl: {
+        query: {
+          uri: entity.value
+        }
+      }
+    },
+    json: true
+  };
+
+  requestWithDefaults(ro, function(err, response, body) {
+    log.trace('done looking up entity ' + entity.value);
+
+    _handleRequestError(err, response, function(err) {
+      if (err) {
+        log.trace('error looking up entity ' + entity.value);
+        cb(err);
+        return;
+      }
+
+      if (!body) {
+        log.trace('no results looking up entity ' + entity.value);
+        cb(null, null);
+        return;
+      }
+
+      log.trace('got result looking up entity ' + entity.value);
+
+      // Anything set on this details object must be copied explicitly in `onDetails`
+      let details = {
+        sha1_list: body.rl.uri_index.sha1_list.slice(0, options.numHashes),
+        url: options.a1000,
+        isUriToHash: true
+      };
+
+      cb(null, details);
+    });
+  });
+}
+
 function doLookup(entities, options, cb) {
   let lookupResults = [];
   async.each(
     entities,
     (entity, next) => {
-      let rlType = _getReversingLabsType(entity);
-      _lookupEntity(entity, rlType, options, function(err, result) {
-        if (err) {
-          return next(err);
-        }
+      if (isUri(entity)) {
+        lookupUriStats(entity, options, function(err, details) {
+          if (err) {
+            return next(err);
+          }
 
-        // null results are ignored as they have been filtered out based on user options
-        if (result !== null) {
-          lookupResults.push(result);
-        }
+          if (!details) {
+            lookupResults.push({
+              entity: entity,
+              data: null
+            });
+            return next();
+          }
 
-        next();
-      });
+          let stats = details.rl.uri_state;
+
+          lookupResults.push({
+            entity: entity,
+            data: {
+              summary: [
+                stats.uri_type,
+                stats.counters.known ? `Known: ${stats.counters.known}` : null,
+                stats.counters.malicious ? `Malicious: ${stats.counters.malicious}` : null,
+                stats.counters.suspicious ? `Suspicious: ${stats.counters.suspicious}` : null
+              ].filter((entry) => !!entry),
+              details: {
+                hasStats: true,
+                stats: stats
+              }
+            }
+          });
+          next();
+        });
+      } else {
+        let rlType = _getReversingLabsType(entity);
+        _lookupEntity(entity, rlType, options, function(err, result) {
+          if (err) {
+            return next(err);
+          }
+
+          // null results are ignored as they have been filtered out based on user options
+          if (result !== null) {
+            lookupResults.push(result);
+          }
+
+          next();
+        });
+      }
     },
     (err) => {
       cb(err, lookupResults);
@@ -91,6 +181,7 @@ function doLookup(entities, options, cb) {
 
 function _getEntitySearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    log.error(entity);
     throw new Error('invalid entity type provided to _getEntitySearchUrl');
   }
 
@@ -99,6 +190,7 @@ function _getEntitySearchUrl(rlType, entity, options) {
 
 function _getEntityXRefSearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
+    log.error(entity);
     throw new Error('invalid entity type provided to _getEntityXRefSearchUrl');
   }
 
@@ -182,8 +274,56 @@ function _lookupEntityXref(entityObj, type, options, cb) {
   });
 }
 
+function lookupUriStats(entity, options, cb) {
+  let shasum = crypto.createHash('sha1');
+  shasum.update(entity.value);
+  let sha1 = shasum.digest('hex');
+
+  log.trace(`looking up stats for uri ${entity.value} with sha ${sha1}`);
+
+  let ro = {
+    uri: `${options.url}/api/uri/statistics/uri_state/sha1/${sha1}?format=json`,
+    method: 'GET',
+    auth: {
+      user: options.username,
+      pass: options.password
+    },
+    json: true
+  };
+
+  requestWithDefaults(ro, function(err, resp, result) {
+    if (resp.statusCode == 404) {
+      log.trace(`No Results for Entity ${entity.value}`);
+      return cb(null, null);
+    }
+
+    if (err || resp.statusCode !== 200) {
+      log.error(err || resp.statusCode);
+      return cb(err || resp.statusCode);
+    }
+
+    log.trace(result, 'lookupUriStats');
+
+    cb(null, result);
+  });
+}
+
 function onDetails(lookupObject, options, cb) {
   let rlType = _getReversingLabsType(lookupObject.entity);
+
+  if (isUri(lookupObject.entity)) {
+    return _lookupUriHashes(lookupObject.entity, options, function(err, result) {
+      if (err) {
+        return cb(err);
+      }
+
+      lookupObject.data.details.sha1_list = result.sha1_list;
+      lookupObject.data.details.url = result.url;
+      lookupObject.data.details.isUriToHash = result.isUriToHash;
+
+      cb(null, lookupObject.data);
+    });
+  }
 
   _lookupEntityXref(lookupObject.entity, rlType, options, (err, result) => {
     if (err) {

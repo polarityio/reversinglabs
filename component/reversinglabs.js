@@ -1,13 +1,23 @@
 'use strict';
+
 polarity.export = PolarityComponent.extend({
   details: Ember.computed.alias('block.data.details'),
   malwarePresence: Ember.computed.alias('details.malware_presence'),
   timezone: Ember.computed('Intl', function() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }),
+  isNotUri: Ember.computed('details', function() {
+    let entity = this.get('block.entity');
+    return !(entity.isURL || entity.isIP || entity.isDomain || entity.isEmail);
+  }),
   isShowingScannerDetails: false,
   statusClass: Ember.computed('malwarePresence.status', function() {
-    let status = this.get('malwarePresence.status').toLowerCase();
+    let malware = this.get('malwarePresence.status');
+    if (!malware) {
+      return '';
+    }
+
+    let status = malware.toLowerCase();
     if (status === 'malicious') {
       return 'status-malicious';
     }

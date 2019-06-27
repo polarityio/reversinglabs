@@ -1,6 +1,8 @@
 # Polarity ReversingLabs Integration
 
-Polarity's ReversingLabs integration gives users access to automated MD5, SHA1, SHA256 lookups within ReversingLabs.
+Polarity's ReversingLabs integration gives users access to automated MD5, SHA1, SHA256 lookups within ReversingLabs.  
+
+> This integration can also support lookups on IPv4, email, url, and domains.  Note that these lookups are disabled by default as they are produce a lot of results.  You can enable these entity types by turning the on in your /config/config.js file under the `entityTypes` property.  
 
 ReversingLabs is a world leader in file reputation and analysis with over 8 billion files analyzed to date. To get more information on ReversingLabs, please visit https://www.reversinglabs.com
 
@@ -32,6 +34,11 @@ If checked, the integration will create a link that allows users to view informa
 
 A1000 Server URL which should include the schema (i.e., https://) and port if required
 
+### Associated hashes for non-hash entity types
+
+Number of associated hashes to show in the details when a hit is received for a non-hash entity type.  
+
+> For this option to have an effect, additional entity types (IPv4, url, domain, email) must be enabled in your config/config.js file
 ## Installation Instructions
 
 Installation instructions for integrations are provided on the [PolarityIO GitHub Page](https://polarityio.github.io/).

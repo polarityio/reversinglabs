@@ -105,6 +105,35 @@ module.exports = {
       type: 'number',
       userCanEdit: true,
       adminOnly: false
-    }
+    }/*,
+    {
+      key: 'blacklist',
+      name: 'Blacklist Domains',
+      description: 'Comma delimited list of domains that you do not want to lookup.',
+      default: '',
+      type: 'text',
+      userCanEdit: false,
+      adminOnly: false
+    },
+    {
+      key: 'domainBlacklistRegex',
+      name: 'Domain Black List Regex',
+      description:
+        'Domains that match the given regex will not be looked up (if blank, no domains will be black listed)',
+      default: '',
+      type: 'text',
+      userCanEdit: false,
+      adminOnly: false
+    },
+    {
+      key: 'ipBlacklistRegex',
+      name: 'IP Black List Regex',
+      description:
+        'IPs that match the given regex will not be looked up (if blank, no IPs will be black listed)',
+      default: '',
+      type: 'text',
+      userCanEdit: false,
+      adminOnly: false
+    }*/
   ]
 };

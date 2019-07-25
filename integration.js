@@ -15,6 +15,13 @@ const SEVERITY_LEVELS = {
   5: 'high'
 };
 
+let domainBlackList = [];
+let previousDomainBlackListAsString = '';
+let previousDomainRegexAsString = '';
+let previousIpRegexAsString = '';
+let domainBlacklistRegex = null;
+let ipBlacklistRegex = null;
+
 const STATUS_TYPES = ['KNOWN', 'UNKNOWN', 'MALICIOUS', 'SUSPICIOUS'];
 
 const BUG_ICON = `<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="bug" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="svg-inline--fa fa-bug fa-w-16"><path fill="currentColor" d="M511.988 288.9c-.478 17.43-15.217 31.1-32.653 31.1H424v16c0 21.864-4.882 42.584-13.6 61.145l60.228 60.228c12.496 12.497 12.496 32.758 0 45.255-12.498 12.497-32.759 12.496-45.256 0l-54.736-54.736C345.886 467.965 314.351 480 280 480V236c0-6.627-5.373-12-12-12h-24c-6.627 0-12 5.373-12 12v244c-34.351 0-65.886-12.035-90.636-32.108l-54.736 54.736c-12.498 12.497-32.759 12.496-45.256 0-12.496-12.497-12.496-32.758 0-45.255l60.228-60.228C92.882 378.584 88 357.864 88 336v-16H32.666C15.23 320 .491 306.33.013 288.9-.484 270.816 14.028 256 32 256h56v-58.745l-46.628-46.628c-12.496-12.497-12.496-32.758 0-45.255 12.498-12.497 32.758-12.497 45.256 0L141.255 160h229.489l54.627-54.627c12.498-12.497 32.758-12.497 45.256 0 12.496 12.497 12.496 32.758 0 45.255L424 197.255V256h56c17.972 0 32.484 14.816 31.988 32.9zM257 0c-61.856 0-112 50.144-112 112h224C369 50.144 318.856 0 257 0z" class=""></path></svg>`;
@@ -64,6 +71,71 @@ function _getReversingLabsType(entity) {
     return 'sha1';
   }
 }
+
+function _setupRegexBlacklists(options) {
+  if (options.domainBlacklistRegex !== previousDomainRegexAsString && options.domainBlacklistRegex.length === 0) {
+    log.trace('Removing Domain Blacklist Regex Filtering');
+    previousDomainRegexAsString = '';
+    domainBlacklistRegex = null;
+  } else {
+    if (options.domainBlacklistRegex !== previousDomainRegexAsString) {
+      previousDomainRegexAsString = options.domainBlacklistRegex;
+      log.trace({ domainBlacklistRegex: previousDomainRegexAsString }, 'Modifying Domain Blacklist Regex');
+      domainBlacklistRegex = new RegExp(options.domainBlacklistRegex, 'i');
+    }
+  }
+
+  if (options.blacklist !== previousDomainBlackListAsString && options.blacklist.length === 0) {
+    log.trace('Removing Domain Blacklist Filtering');
+    previousDomainBlackListAsString = '';
+    domainBlackList = null;
+  } else {
+    if (options.blacklist !== previousDomainBlackListAsString) {
+      previousDomainBlackListAsString = options.blacklist;
+      log.trace({ domainBlacklist: previousDomainBlackListAsString }, 'Modifying Domain Blacklist Regex');
+      domainBlackList = options.blacklist.split(',').map((item) => item.trim());
+    }
+  }
+
+  if (options.ipBlacklistRegex !== previousIpRegexAsString && options.ipBlacklistRegex.length === 0) {
+    log.trace('Removing IP Blacklist Regex Filtering');
+    previousIpRegexAsString = '';
+    ipBlacklistRegex = null;
+  } else {
+    if (options.ipBlacklistRegex !== previousIpRegexAsString) {
+      previousIpRegexAsString = options.ipBlacklistRegex;
+      log.trace({ ipBlacklistRegex: previousIpRegexAsString }, 'Modifying IP Blacklist Regex');
+      ipBlacklistRegex = new RegExp(options.ipBlacklistRegex, 'i');
+    }
+  }
+}
+
+function _isEntityBlacklisted(entityObj, options) {
+  if (domainBlackList.indexOf(entityObj.value) >= 0) {
+    return true;
+  }
+
+  if (entityObj.isIPv4 && !entityObj.isPrivateIP) {
+    if (ipBlacklistRegex !== null) {
+      if (ipBlacklistRegex.test(entityObj.value)) {
+        log.trace({ ip: entityObj.value }, 'Blocked BlackListed IP Lookup');
+        return true;
+      }
+    }
+  }
+
+  if (entityObj.isDomain) {
+    if (domainBlacklistRegex !== null) {
+      if (domainBlacklistRegex.test(entityObj.value)) {
+        log.trace({ domain: entityObj.value }, 'Blocked BlackListed Domain Lookup');
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 
 function isUri(entity) {
   return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail;
@@ -121,10 +193,22 @@ function _lookupUriHashes(entity, options, cb) {
 
 function doLookup(entities, options, cb) {
   let lookupResults = [];
+
+  _setupRegexBlacklists(options);
+
   async.each(
     entities,
     (entity, next) => {
       if (isUri(entity)) {
+        if (entity.isDomain || entity.isIP){
+          if(_isEntityBlacklisted(entity)) {
+        lookupResults.push({
+          entity: entity,
+          data: null
+        });
+        return;
+      }
+    }
         lookupUriStats(entity, options, function(err, details) {
           if (err) {
             return next(err);

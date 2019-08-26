@@ -2,7 +2,7 @@
   "main": "./integration.js",
   "name": "ReversingLabs",
   "description": "ReversingLabs integrations",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "private": true,
   "dependencies": {
     "request": "^2.88",

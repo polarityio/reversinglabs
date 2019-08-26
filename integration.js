@@ -5,6 +5,7 @@ const async = require('async');
 const fs = require('fs');
 const config = require('./config/config');
 const crypto = require('crypto');
+const _ = require('lodash');
 
 const SEVERITY_LEVELS = {
   0: 'none',
@@ -15,7 +16,7 @@ const SEVERITY_LEVELS = {
   5: 'high'
 };
 
-let domainBlackList = [];
+
 let previousDomainBlackListAsString = '';
 let previousDomainRegexAsString = '';
 let previousIpRegexAsString = '';
@@ -73,61 +74,63 @@ function _getReversingLabsType(entity) {
 }
 
 function _setupRegexBlacklists(options) {
-  if (options.domainBlacklistRegex !== previousDomainRegexAsString && options.domainBlacklistRegex.length === 0) {
-    log.trace('Removing Domain Blacklist Regex Filtering');
+  if (
+    options.domainBlacklistRegex !== previousDomainRegexAsString &&
+    options.domainBlacklistRegex.length === 0
+  ) {
+    log.debug('Removing Domain Blacklist Regex Filtering');
     previousDomainRegexAsString = '';
     domainBlacklistRegex = null;
   } else {
     if (options.domainBlacklistRegex !== previousDomainRegexAsString) {
       previousDomainRegexAsString = options.domainBlacklistRegex;
-      log.trace({ domainBlacklistRegex: previousDomainRegexAsString }, 'Modifying Domain Blacklist Regex');
+      log.debug(
+        { domainBlacklistRegex: previousDomainRegexAsString },
+        'Modifying Domain Blacklist Regex'
+      );
       domainBlacklistRegex = new RegExp(options.domainBlacklistRegex, 'i');
     }
   }
 
-  if (options.blacklist !== previousDomainBlackListAsString && options.blacklist.length === 0) {
-    log.trace('Removing Domain Blacklist Filtering');
-    previousDomainBlackListAsString = '';
-    domainBlackList = null;
-  } else {
-    if (options.blacklist !== previousDomainBlackListAsString) {
-      previousDomainBlackListAsString = options.blacklist;
-      log.trace({ domainBlacklist: previousDomainBlackListAsString }, 'Modifying Domain Blacklist Regex');
-      domainBlackList = options.blacklist.split(',').map((item) => item.trim());
-    }
-  }
-
-  if (options.ipBlacklistRegex !== previousIpRegexAsString && options.ipBlacklistRegex.length === 0) {
-    log.trace('Removing IP Blacklist Regex Filtering');
+  if (
+    options.ipBlacklistRegex !== previousIpRegexAsString &&
+    options.ipBlacklistRegex.length === 0
+  ) {
+    log.debug('Removing IP Blacklist Regex Filtering');
     previousIpRegexAsString = '';
     ipBlacklistRegex = null;
   } else {
     if (options.ipBlacklistRegex !== previousIpRegexAsString) {
       previousIpRegexAsString = options.ipBlacklistRegex;
-      log.trace({ ipBlacklistRegex: previousIpRegexAsString }, 'Modifying IP Blacklist Regex');
+      log.debug({ ipBlacklistRegex: previousIpRegexAsString }, 'Modifying IP Blacklist Regex');
       ipBlacklistRegex = new RegExp(options.ipBlacklistRegex, 'i');
     }
   }
 }
 
-function _isEntityBlacklisted(entityObj, options) {
-  if (domainBlackList.indexOf(entityObj.value) >= 0) {
+function _isEntityBlacklisted(entity, options) {
+
+  let blacklist = options.blacklist;
+
+  log.trace({ blacklist: blacklist }, 'checking to see what blacklist looks like');
+
+  if (_.includes(blacklist, entity.value.toLowerCase())) {
     return true;
   }
 
-  if (entityObj.isIPv4 && !entityObj.isPrivateIP) {
+  if (entity.isIPv4 && !entity.isPrivateIP) {
     if (ipBlacklistRegex !== null) {
-      if (ipBlacklistRegex.test(entityObj.value)) {
-        log.trace({ ip: entityObj.value }, 'Blocked BlackListed IP Lookup');
+      if (ipBlacklistRegex.test(entity.value)) {
+        log.debug({ ip: entity.value }, 'Blocked BlackListed IP Lookup');
         return true;
       }
     }
   }
 
-  if (entityObj.isDomain) {
+  if (entity.isDomain) {
     if (domainBlacklistRegex !== null) {
-      if (domainBlacklistRegex.test(entityObj.value)) {
-        log.trace({ domain: entityObj.value }, 'Blocked BlackListed Domain Lookup');
+      if (domainBlacklistRegex.test(entity.value)) {
+        log.debug({ domain: entity.value }, 'Blocked BlackListed Domain Lookup');
         return true;
       }
     }
@@ -135,6 +138,9 @@ function _isEntityBlacklisted(entityObj, options) {
 
   return false;
 }
+
+
+
 
 
 function isUri(entity) {
@@ -201,7 +207,7 @@ function doLookup(entities, options, cb) {
     (entity, next) => {
       if (isUri(entity)) {
         if (entity.isDomain || entity.isIP){
-          if(_isEntityBlacklisted(entity)) {
+          if(_isEntityBlacklisted(entity, options)) {
         lookupResults.push({
           entity: entity,
           data: null
@@ -262,6 +268,8 @@ function doLookup(entities, options, cb) {
     }
   );
 }
+
+
 
 function _getEntitySearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {

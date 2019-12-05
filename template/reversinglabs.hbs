@@ -1,7 +1,7 @@
 {{#if block.userOptions.lookupA1000}}
     <a class="p-link" href="{{block.userOptions.a1000}}/?q={{block.entity.value}}">View in ReversingLabs A1000 {{fa-icon "external-link-square" class="external-link-icon"}}</a>
 {{/if}}
--
+
 {{#if isNotUri}}
 <h1 class="p-title">
     {{fa-icon "file" fixedWidth=true}} File Reputation
@@ -96,7 +96,7 @@
         {{fa-icon "scanner" fixedWidth=true}}
         Scanner Results
         <span class="p-action view-more" {{action "toggleScanner"}}>
-            {{#if isShowingDiv}}
+            {{#if isShowingScannerDetails}}
                 (Hide Details {{fa-icon "angle-up" fixedWidth=true}})
             {{else}}
                 (View Details {{fa-icon "angle-down" fixedWidth=true}})
@@ -159,31 +159,31 @@
     {{#if block.data.details.hasStats}}
         <!-- URI Stats -->
         <h1 class="p-title">
-            <i class="fa fa-fw fa-server"></i> URI Stats
+            {{fa-icon "chart-bar" fixedWidth=true}} URI Stats
         </h1>
         <div>
-            <span class="p-key">SHA1</span>
+            <span class="p-key">SHA1: </span>
             <span class="p-value">{{block.data.details.stats.sha1}}</span>
         </div>
         <div>
-            <span class="p-key">URI Type</span>
+            <span class="p-key">URI Type: </span>
             <span class="p-value">{{block.data.details.stats.uri_type}}</span>
         </div>
-        
+
         <!-- Counters -->
         <h1 class="p-title">
-            <i class="fa fa-fw fa-server"></i> Associated Samples
+            {{fa-icon "vial" fixedWidth=true}} Associated Samples
         </h1>
         <div>
-            <span class="p-key">Known</span>
+            <span class="p-key">Known: </span>
             <span class="p-value">{{block.data.details.stats.counters.known}}</span>
         </div>
         <div>
-            <span class="p-key">Malicous</span>
+            <span class="p-key">Malicous: </span>
             <span class="p-value">{{block.data.details.stats.counters.malicious}}</span>
         </div>
         <div>
-            <span class="p-key">Suspicious</span>
+            <span class="p-key">Suspicious: </span>
             <span class="p-value">{{block.data.details.stats.counters.suspicious}}</span>
         </div>
     {{/if}}
@@ -191,7 +191,7 @@
 
     <!-- Hashes -->
     <h1 class="p-title">
-        <i class="fa fa-fw fa-server"></i> Associated Hashes
+        {{fa-icon "file" fixedWidth=true}} Associated Hashes
     </h1>
     <div class="tags">
         {{#each block.data.details.sha1_list as |sha1|}}

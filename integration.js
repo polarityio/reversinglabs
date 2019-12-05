@@ -16,8 +16,6 @@ const SEVERITY_LEVELS = {
   5: 'high'
 };
 
-
-let previousDomainBlackListAsString = '';
 let previousDomainRegexAsString = '';
 let previousIpRegexAsString = '';
 let domainBlacklistRegex = null;
@@ -74,28 +72,19 @@ function _getReversingLabsType(entity) {
 }
 
 function _setupRegexBlacklists(options) {
-  if (
-    options.domainBlacklistRegex !== previousDomainRegexAsString &&
-    options.domainBlacklistRegex.length === 0
-  ) {
+  if (options.domainBlacklistRegex !== previousDomainRegexAsString && options.domainBlacklistRegex.length === 0) {
     log.debug('Removing Domain Blacklist Regex Filtering');
     previousDomainRegexAsString = '';
     domainBlacklistRegex = null;
   } else {
     if (options.domainBlacklistRegex !== previousDomainRegexAsString) {
       previousDomainRegexAsString = options.domainBlacklistRegex;
-      log.debug(
-        { domainBlacklistRegex: previousDomainRegexAsString },
-        'Modifying Domain Blacklist Regex'
-      );
+      log.debug({ domainBlacklistRegex: previousDomainRegexAsString }, 'Modifying Domain Blacklist Regex');
       domainBlacklistRegex = new RegExp(options.domainBlacklistRegex, 'i');
     }
   }
 
-  if (
-    options.ipBlacklistRegex !== previousIpRegexAsString &&
-    options.ipBlacklistRegex.length === 0
-  ) {
+  if (options.ipBlacklistRegex !== previousIpRegexAsString && options.ipBlacklistRegex.length === 0) {
     log.debug('Removing IP Blacklist Regex Filtering');
     previousIpRegexAsString = '';
     ipBlacklistRegex = null;
@@ -109,7 +98,6 @@ function _setupRegexBlacklists(options) {
 }
 
 function _isEntityBlacklisted(entity, options) {
-
   let blacklist = options.blacklist;
 
   log.trace({ blacklist: blacklist }, 'checking to see what blacklist looks like');
@@ -138,10 +126,6 @@ function _isEntityBlacklisted(entity, options) {
 
   return false;
 }
-
-
-
-
 
 function isUri(entity) {
   return entity.isURL || entity.isIP || entity.isDomain || entity.isEmail;
@@ -200,21 +184,21 @@ function _lookupUriHashes(entity, options, cb) {
 function doLookup(entities, options, cb) {
   let lookupResults = [];
 
-  _setupRegexBlacklists(options);
+  //_setupRegexBlacklists(options);
 
   async.each(
     entities,
     (entity, next) => {
       if (isUri(entity)) {
-        if (entity.isDomain || entity.isIP){
-          if(_isEntityBlacklisted(entity, options)) {
-        lookupResults.push({
-          entity: entity,
-          data: null
-        });
-        return;
-      }
-    }
+        // if (entity.isDomain || entity.isIP) {
+        //   if (_isEntityBlacklisted(entity, options)) {
+        //     lookupResults.push({
+        //       entity: entity,
+        //       data: null
+        //     });
+        //     return;
+        //   }
+        // }
         lookupUriStats(entity, options, function(err, details) {
           if (err) {
             return next(err);
@@ -235,9 +219,9 @@ function doLookup(entities, options, cb) {
             data: {
               summary: [
                 stats.uri_type,
-                stats.counters.known ? `Known: ${stats.counters.known}` : null,
-                stats.counters.malicious ? `Malicious: ${stats.counters.malicious}` : null,
-                stats.counters.suspicious ? `Suspicious: ${stats.counters.suspicious}` : null
+                `Known: ${stats.counters.known}`,
+                `Malicious: ${stats.counters.malicious}`,
+                `Suspicious: ${stats.counters.suspicious}`
               ].filter((entry) => !!entry),
               details: {
                 hasStats: true,
@@ -268,8 +252,6 @@ function doLookup(entities, options, cb) {
     }
   );
 }
-
-
 
 function _getEntitySearchUrl(rlType, entity, options) {
   if (rlType !== 'sha1' && rlType !== 'md5' && rlType !== 'sha256') {
@@ -394,7 +376,18 @@ function lookupUriStats(entity, options, cb) {
       return cb(err || resp.statusCode);
     }
 
-    log.trace(result, 'lookupUriStats');
+    if (!result || !result.rl || !result.rl.uri_state || !result.rl.uri_state.counters) {
+      log.warn(result, 'Unexpected result object returned while looking up URI stats');
+      return cb(null, null);
+    }
+
+    if (
+      options.ignoreKnownSamples &&
+      result.rl.uri_state.counters.malicious === 0 &&
+      result.rl.uri_state.counters.suspicious === 0
+    ) {
+      return cb(null, null);
+    }
 
     cb(null, result);
   });

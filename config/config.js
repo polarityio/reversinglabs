@@ -8,7 +8,7 @@ module.exports = {
    * however and are turned off by default.  If you would like to enable these lookups please add in the required
    * entity types to the array above or comment out the line above and uncomment the line below.
    */
-  //entityTypes: ['hash', 'email', 'domain', 'url', 'ipv4'],
+  //entityTypes: ['hash', 'email', 'domain', 'ipv4', 'url'],
   description: 'ReversingLabs integration for real-time file hash lookups',
   styles: ['./styles/reversinglabs.less'],
   block: {
@@ -105,35 +105,34 @@ module.exports = {
       type: 'number',
       userCanEdit: true,
       adminOnly: false
-    }/*,
-    {
-      key: 'blacklist',
-      name: 'Blacklist Domains',
-      description: 'Comma delimited list of domains that you do not want to lookup.',
-      default: '',
-      type: 'text',
-      userCanEdit: false,
-      adminOnly: false
-    },
-    {
-      key: 'domainBlacklistRegex',
-      name: 'Domain Black List Regex',
-      description:
-        'Domains that match the given regex will not be looked up (if blank, no domains will be black listed)',
-      default: '',
-      type: 'text',
-      userCanEdit: false,
-      adminOnly: false
-    },
-    {
-      key: 'ipBlacklistRegex',
-      name: 'IP Black List Regex',
-      description:
-        'IPs that match the given regex will not be looked up (if blank, no IPs will be black listed)',
-      default: '',
-      type: 'text',
-      userCanEdit: false,
-      adminOnly: false
-    }*/
+    }
+    // {
+    //   key: 'blacklist',
+    //   name: 'Blacklist Domains',
+    //   description: 'Comma delimited list of domains that you do not want to lookup.',
+    //   default: '',
+    //   type: 'text',
+    //   userCanEdit: false,
+    //   adminOnly: false
+    // },
+    // {
+    //   key: 'domainBlacklistRegex',
+    //   name: 'Domain Black List Regex',
+    //   description:
+    //     'Domains that match the given regex will not be looked up (if blank, no domains will be black listed)',
+    //   default: '',
+    //   type: 'text',
+    //   userCanEdit: false,
+    //   adminOnly: false
+    // },
+    // {
+    //   key: 'ipBlacklistRegex',
+    //   name: 'IP Black List Regex',
+    //   description: 'IPs that match the given regex will not be looked up (if blank, no IPs will be black listed)',
+    //   default: '',
+    //   type: 'text',
+    //   userCanEdit: false,
+    //   adminOnly: false
+    // }
   ]
 };

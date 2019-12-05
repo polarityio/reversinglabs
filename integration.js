@@ -171,7 +171,7 @@ function _lookupUriHashes(entity, options, cb) {
 
       // Anything set on this details object must be copied explicitly in `onDetails`
       let details = {
-        sha1_list: body.rl.uri_index.sha1_list.slice(0, options.numHashes),
+        sha1_list: body.rl.uri_index.sha1_list.slice(0, 10),//options.numHashes),
         url: options.a1000,
         isUriToHash: true
       };

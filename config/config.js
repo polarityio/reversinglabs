@@ -97,15 +97,15 @@ module.exports = {
       userCanEdit: false,
       adminOnly: true
     },
-    {
-      key: 'numHashes',
-      name: 'Associated hashes for non-hash entity types',
-      description: 'Number of associated hashes to return for non-hash entity types (e.g., IPv4, or email).',
-      default: 10,
-      type: 'number',
-      userCanEdit: true,
-      adminOnly: false
-    }
+    // {
+    //   key: 'numHashes',
+    //   name: 'Associated hashes for non-hash entity types',
+    //   description: 'Number of associated hashes to return for non-hash entity types (e.g., IPv4, or email).',
+    //   default: 10,
+    //   type: 'number',
+    //   userCanEdit: true,
+    //   adminOnly: false
+    // }
     // {
     //   key: 'blacklist',
     //   name: 'Blacklist Domains',

@@ -394,8 +394,18 @@ function lookupUriStats(entity, options, cb) {
       return cb(err || resp.statusCode);
     }
 
-    log.trace(result, 'lookupUriStats');
+    if (!result || !result.rl || !result.rl.uri_state || !result.rl.uri_state.counters) {
+      log.warn(result, 'Unexpected result object returned while looking up URI stats');
+      return cb(null, null);
+    }
 
+    if (
+      options.ignoreKnownSamples &&
+      result.rl.uri_state.counters.malicious === 0 &&
+      result.rl.uri_state.counters.suspicious === 0
+    ) {
+      return cb(null, null);
+    }
     cb(null, result);
   });
 }

@@ -57,7 +57,7 @@ module.exports = {
       default: '',
       type: 'text',
       userCanEdit: false,
-      adminOnly: false
+      adminOnly: true
     },
     {
       key: 'password',
@@ -66,7 +66,7 @@ module.exports = {
       default: '',
       type: 'password',
       userCanEdit: false,
-      adminOnly: false
+      adminOnly: true
     },
     {
       key: 'ignoreKnownSamples',
@@ -85,8 +85,8 @@ module.exports = {
         'If checked, the integration will create a link that allows users to view information in their A1000 system',
       default: true,
       type: 'boolean',
-      userCanEdit: true,
-      adminOnly: false
+      userCanEdit: false,
+      adminOnly: true
     },
     {
       key: 'a1000',

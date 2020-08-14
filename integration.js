@@ -18,8 +18,8 @@ const SEVERITY_LEVELS = {
 
 let previousDomainRegexAsString = '';
 let previousIpRegexAsString = '';
-let domainBlacklistRegex = null;
-let ipBlacklistRegex = null;
+let domainBlocklistRegex = null;
+let ipBlocklistRegex = null;
 
 const STATUS_TYPES = ['KNOWN', 'UNKNOWN', 'MALICIOUS', 'SUSPICIOUS'];
 
@@ -71,54 +71,54 @@ function _getReversingLabsType(entity) {
   }
 }
 
-function _setupRegexBlacklists(options) {
-  if (options.domainBlacklistRegex !== previousDomainRegexAsString && options.domainBlacklistRegex.length === 0) {
-    log.debug('Removing Domain Blacklist Regex Filtering');
+function _setupRegexBlocklists(options) {
+  if (options.domainBlocklistRegex !== previousDomainRegexAsString && options.domainBlocklistRegex.length === 0) {
+    log.debug('Removing Domain Blocklist Regex Filtering');
     previousDomainRegexAsString = '';
-    domainBlacklistRegex = null;
+    domainBlocklistRegex = null;
   } else {
-    if (options.domainBlacklistRegex !== previousDomainRegexAsString) {
-      previousDomainRegexAsString = options.domainBlacklistRegex;
-      log.debug({ domainBlacklistRegex: previousDomainRegexAsString }, 'Modifying Domain Blacklist Regex');
-      domainBlacklistRegex = new RegExp(options.domainBlacklistRegex, 'i');
+    if (options.domainBlocklistRegex !== previousDomainRegexAsString) {
+      previousDomainRegexAsString = options.domainBlocklistRegex;
+      log.debug({ domainBlocklistRegex: previousDomainRegexAsString }, 'Modifying Domain Blocklist Regex');
+      domainBlocklistRegex = new RegExp(options.domainBlocklistRegex, 'i');
     }
   }
 
-  if (options.ipBlacklistRegex !== previousIpRegexAsString && options.ipBlacklistRegex.length === 0) {
-    log.debug('Removing IP Blacklist Regex Filtering');
+  if (options.ipBlocklistRegex !== previousIpRegexAsString && options.ipBlocklistRegex.length === 0) {
+    log.debug('Removing IP Blocklist Regex Filtering');
     previousIpRegexAsString = '';
-    ipBlacklistRegex = null;
+    ipBlocklistRegex = null;
   } else {
-    if (options.ipBlacklistRegex !== previousIpRegexAsString) {
-      previousIpRegexAsString = options.ipBlacklistRegex;
-      log.debug({ ipBlacklistRegex: previousIpRegexAsString }, 'Modifying IP Blacklist Regex');
-      ipBlacklistRegex = new RegExp(options.ipBlacklistRegex, 'i');
+    if (options.ipBlocklistRegex !== previousIpRegexAsString) {
+      previousIpRegexAsString = options.ipBlocklistRegex;
+      log.debug({ ipBlocklistRegex: previousIpRegexAsString }, 'Modifying IP Blocklist Regex');
+      ipBlocklistRegex = new RegExp(options.ipBlocklistRegex, 'i');
     }
   }
 }
 
-function _isEntityBlacklisted(entity, options) {
-  let blacklist = options.blacklist;
+function _isEntityBlocklisted(entity, options) {
+  let blocklist = options.blocklist;
 
-  log.trace({ blacklist: blacklist }, 'checking to see what blacklist looks like');
+  log.trace({ blocklist: blocklist }, 'checking to see what blocklist looks like');
 
-  if (_.includes(blacklist, entity.value.toLowerCase())) {
+  if (_.includes(blocklist, entity.value.toLowerCase())) {
     return true;
   }
 
   if (entity.isIPv4 && !entity.isPrivateIP) {
-    if (ipBlacklistRegex !== null) {
-      if (ipBlacklistRegex.test(entity.value)) {
-        log.debug({ ip: entity.value }, 'Blocked BlackListed IP Lookup');
+    if (ipBlocklistRegex !== null) {
+      if (ipBlocklistRegex.test(entity.value)) {
+        log.debug({ ip: entity.value }, 'Blocked BlockListed IP Lookup');
         return true;
       }
     }
   }
 
   if (entity.isDomain) {
-    if (domainBlacklistRegex !== null) {
-      if (domainBlacklistRegex.test(entity.value)) {
-        log.debug({ domain: entity.value }, 'Blocked BlackListed Domain Lookup');
+    if (domainBlocklistRegex !== null) {
+      if (domainBlocklistRegex.test(entity.value)) {
+        log.debug({ domain: entity.value }, 'Blocked BlockListed Domain Lookup');
         return true;
       }
     }
@@ -184,14 +184,14 @@ function _lookupUriHashes(entity, options, cb) {
 function doLookup(entities, options, cb) {
   let lookupResults = [];
 
-  //_setupRegexBlacklists(options);
+  //_setupRegexBlocklists(options);
 
   async.each(
     entities,
     (entity, next) => {
       if (isUri(entity)) {
         // if (entity.isDomain || entity.isIP) {
-        //   if (_isEntityBlacklisted(entity, options)) {
+        //   if (_isEntityBlocklisted(entity, options)) {
         //     lookupResults.push({
         //       entity: entity,
         //       data: null

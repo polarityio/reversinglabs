@@ -1,0 +1,83 @@
+{
+  "name": "ReversingLabs",
+  "acronym": "RL",
+  "defaultColor": "light-pink",
+  "logging": {
+    "level": "info"
+  },
+  "entityTypes": ["hash"],
+  "description": "ReversingLabs integration for real-time file hash lookups",
+  "styles": ["./styles/reversinglabs.less"],
+  "block": {
+    "component": {
+      "file": "./component/reversinglabs.js"
+    },
+    "template": {
+      "file": "./template/reversinglabs.hbs"
+    }
+  },
+  "request": {
+    "cert": "",
+    "key": "",
+    "passphrase": "",
+    "ca": "",
+    "proxy": "",
+    "rejectUnauthorized": true
+  },
+  "options": [
+    {
+      "key": "url",
+      "name": "ReversingLabs' TitaniumCloud Server URL",
+      "description": "TitaniumCloud Server which should include the schema (i.e., https://) and port if required",
+      "default": "",
+      "type": "text",
+      "userCanEdit": false,
+      "adminOnly": true
+    },
+    {
+      "key": "username",
+      "name": "Username",
+      "description": "ReversingLabs' TitaniumCloud API Username",
+      "default": "",
+      "type": "text",
+      "userCanEdit": false,
+      "adminOnly": true
+    },
+    {
+      "key": "password",
+      "name": "Password",
+      "description": "ReversingLabs' TitaniumCloud password",
+      "default": "",
+      "type": "password",
+      "userCanEdit": false,
+      "adminOnly": true
+    },
+    {
+      "key": "ignoreKnownSamples",
+      "name": "Ignore Known Samples",
+      "description": "If checked, the integration will only return results for samples that are marked as \"Malicious\" or \"Suspicious\".  Samples marked as \"Known\" will be ignored.",
+      "default": true,
+      "type": "boolean",
+      "userCanEdit": true,
+      "adminOnly": false
+    },
+    {
+      "key": "lookupA1000",
+      "name": "View data in A1000",
+      "description": "If checked, the integration will create a link that allows users to view information in their A1000 system",
+      "default": true,
+      "type": "boolean",
+      "userCanEdit": false,
+      "adminOnly": true
+    },
+    {
+      "key": "a1000",
+      "name": "ReversingLabs' A1000 Server URL",
+      "description": "A1000 Server URL which should include the schema (i.e., https://) and port if required",
+      "default": "",
+      "type": "text",
+      "userCanEdit": false,
+      "adminOnly": true
+    }
+  ]
+}

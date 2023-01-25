@@ -1,6 +1,7 @@
 module.exports = {
   name: 'ReversingLabs',
   acronym: 'RL',
+  defaultColor: 'light-pink',
   logging: { level: 'info' },
   entityTypes: ['hash'],
   /**
@@ -96,7 +97,7 @@ module.exports = {
       type: 'text',
       userCanEdit: false,
       adminOnly: true
-    },
+    }
     // {
     //   key: 'numHashes',
     //   name: 'Associated hashes for non-hash entity types',

@@ -1,6 +1,6 @@
 'use strict';
 
-const request = require('request');
+const request = require('postman-request');
 const async = require('async');
 const fs = require('fs');
 const config = require('./config/config');

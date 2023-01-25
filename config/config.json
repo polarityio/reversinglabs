@@ -1,16 +1,13 @@
 {
   "name": "ReversingLabs",
   "acronym": "RL",
+  "defaultColor": "light-pink",
   "logging": {
     "level": "info"
   },
-  "entityTypes": [
-    "hash"
-  ],
+  "entityTypes": ["hash"],
   "description": "ReversingLabs integration for real-time file hash lookups",
-  "styles": [
-    "./styles/reversinglabs.less"
-  ],
+  "styles": ["./styles/reversinglabs.less"],
   "block": {
     "component": {
       "file": "./component/reversinglabs.js"

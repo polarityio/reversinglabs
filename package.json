@@ -5,8 +5,8 @@
   "description": "ReversingLabs Integration",
   "private": true,
   "dependencies": {
-    "postman-request": "^2.88.1-postman.33",
-    "async": "^3.2.0",
+    "postman-request": "^2.88.1-postman.40",
+    "async": "^3.2.5",
     "lodash": "^4.17.19"
   }
 }

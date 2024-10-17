@@ -3,7 +3,7 @@ module.exports = {
   acronym: 'RL',
   defaultColor: 'light-pink',
   logging: { level: 'info' },
-  entityTypes: ['hash'],
+  entityTypes: ['MD5', 'SHA1', 'SHA256'],
   /**
    * The ReversingLabs integration also supports lookups on email, domain, url and ipv4.  These lookups can be noisey
    * however and are turned off by default.  If you would like to enable these lookups please add in the required
@@ -35,7 +35,7 @@ module.exports = {
     ca: '',
     // An HTTP proxy to be used. Supports proxy Auth with Basic Auth, identical to support for
     // the url parameter (by embedding the auth info in the uri)
-    proxy: ""
+    proxy: ''
   },
   options: [
     {

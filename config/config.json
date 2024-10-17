@@ -6,7 +6,7 @@
   "logging": {
     "level": "info"
   },
-  "entityTypes": ["hash"],
+  "entityTypes": ["MD5", "SHA1", "SHA256"],
   "description": "ReversingLabs integration for real-time file hash lookups",
   "styles": ["./styles/reversinglabs.less"],
   "block": {
@@ -16,13 +16,6 @@
     "template": {
       "file": "./template/reversinglabs.hbs"
     }
-  },
-  "request": {
-    "cert": "",
-    "key": "",
-    "passphrase": "",
-    "ca": "",
-    "proxy": ""
   },
   "options": [
     {
